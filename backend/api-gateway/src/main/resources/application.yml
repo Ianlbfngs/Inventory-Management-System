@@ -11,34 +11,52 @@ spring:
           enabled: true
           lower-case-service-id: true
       routes:
-        - id: user-service
-          uri: lb://user-service
+        - id: USER-SERVICE
+          uri: lb://USER-SERVICE
           predicates:
-            - Path=/api/user/**
+            - Path=/api/credentials/**
+          filters:
+            - RewritePath=/api/credentials/actuator/(?<segment>.*), /actuator/${segment}
         - id: product-service
           uri: lb://product-service
           predicates:
             - Path=/api/product/**
+          filters:
+            - RewritePath=/api/product/actuator/(?<segment>.*), /actuator/${segment}
         - id: stock-service
           uri: lb://stock-service
           predicates:
             - Path=/api/stock/**
+          filters:
+            - RewritePath=/api/stock/actuator/(?<segment>.*), /actuator/${segment}
         - id: storage-service
           uri: lb://storage-service
           predicates:
             - Path=/api/storage/**
+          filters:
+            - RewritePath=/api/storage/actuator/(?<segment>.*), /actuator/${segment}
         - id: movements-service
           uri: lb://movements-service
           predicates:
             - Path=/api/movements/**
+          filters:
+            - RewritePath=/api/movements/actuator/(?<segment>.*), /actuator/${segment}
         - id: headquarters-service
           uri: lb://headquarters-service
           predicates:
             - Path=/api/headquarters/**
+          filters:
+            - RewritePath=/api/headquarters/actuator/(?<segment>.*), /actuator/${segment}
         - id: report-service
           uri: lb://report-service
           predicates:
             - Path=/api/report/**
+          filters:
+            - RewritePath=/api/report/actuator/(?<segment>.*), /actuator/${segment}
+      default-filters:
+        - AddRequestHeader=X-Gateway-Auth, gateway-secret
+
+
 
 
 
