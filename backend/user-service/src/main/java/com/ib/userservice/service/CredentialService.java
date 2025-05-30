@@ -33,10 +33,10 @@ public class CredentialService implements ICredentialService{
     }
 
     @Override
-    public Response<Statuses.LoginStatus> login(Credential credential) {
+    public Response<Statuses.LoginStatus> loginCredential(Credential credential) {
         Optional<Credential> completeCredential = credentialRepository.findCredentialByUsername(credential.getUsername());
         if(completeCredential.isEmpty()) return new Response<>(Statuses.LoginStatus.NOT_FOUND,null);
-        if(!completeCredential.get().isActive()) return new Response<>(Statuses.LoginStatus.NOT_ACTIVE,null);
+        if(!completeCredential.get().isActive()) return new Response<>(Statuses.LoginStatus.SOFT_DELETED,null);
         if(!credential.getPassword().equals(completeCredential.get().getPassword())) return new Response<>(Statuses.LoginStatus.DENIED,null);
         Credential loggedCredential = new Credential();
         loggedCredential.setToken(jwtService.generateToken(credential.getUsername()));
@@ -50,18 +50,26 @@ public class CredentialService implements ICredentialService{
     public Response<Statuses.UpdateStatus> updateCredential(Credential credential) {
         Optional<Credential> originalCredential = credentialRepository.findCredentialById(credential.getId());
         if(originalCredential.isEmpty()) return new Response<>(Statuses.UpdateStatus.NOT_FOUND,null);
-        if(!originalCredential.get().isActive()) return new Response<>(Statuses.UpdateStatus.NOT_ACTIVE,null);
+        if(!originalCredential.get().isActive()) return new Response<>(Statuses.UpdateStatus.SOFT_DELETED,null);
         if(!originalCredential.get().getUsername().equals(credential.getUsername()) && credentialRepository.existsByUsername(credential.getUsername())) return new Response<>(Statuses.UpdateStatus.USER_IN_USE,null);
+        credential.setActive(true);
         return new Response<>(Statuses.UpdateStatus.SUCCESS,credential);
     }
 
     @Override
-    public Response<Statuses.LogicalDeleteStatus> logicalDelete(int id) {
+    public Response<Statuses.SoftDeleteStatus> softDeleteCredential(int id) {
         Optional<Credential> credentialToDelete = credentialRepository.findCredentialById(id);
-        if(credentialToDelete.isEmpty()) return new Response<>(Statuses.LogicalDeleteStatus.NOT_FOUND,null);
-        if(!credentialToDelete.get().isActive()) return new Response<>(Statuses.LogicalDeleteStatus.ALREADY_DELETED,null);
+        if(credentialToDelete.isEmpty()) return new Response<>(Statuses.SoftDeleteStatus.NOT_FOUND,null);
+        if(!credentialToDelete.get().isActive()) return new Response<>(Statuses.SoftDeleteStatus.ALREADY_SOFT_DELETED,null);
         credentialToDelete.get().setActive(false);
         credentialRepository.save(credentialToDelete.get());
-        return new Response<>(Statuses.LogicalDeleteStatus.SUCCESS,null);
+        return new Response<>(Statuses.SoftDeleteStatus.SUCCESS,null);
+    }
+
+    @Override
+    public Response<Statuses.HardDeleteStatus> hardDeleteStatus(int id) {
+        if(!credentialRepository.existsById(id)) return new Response<>(Statuses.HardDeleteStatus.NOT_FOUND,null);
+        credentialRepository.deleteById(id);
+        return new Response<>(Statuses.HardDeleteStatus.SUCCESS,null);
     }
 }

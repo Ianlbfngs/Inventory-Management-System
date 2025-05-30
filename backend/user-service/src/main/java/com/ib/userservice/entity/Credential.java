@@ -1,7 +1,6 @@
 package com.ib.userservice.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -24,7 +23,7 @@ public class Credential {
     @NotNull
     @Size(min = 1, max = 45)
     String password;
-    boolean active;
+    boolean active = false;
 
     @Transient
     private String token;

@@ -1,4 +1,4 @@
-package com.ib.userservice.filters;
+package com.ib.productservice.filters;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

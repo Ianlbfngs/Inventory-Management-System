@@ -1,12 +1,7 @@
 package com.ib.userservice.response;
 
 import com.ib.userservice.entity.Credential;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
-@Getter
-@AllArgsConstructor
-public class Response<Status extends IStatus> {
-    private final Status status;
-    private final Credential credential;
+
+public record Response<Status extends IStatus>(Status status, Credential credential) {
 }

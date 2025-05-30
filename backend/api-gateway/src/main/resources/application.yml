@@ -20,9 +20,9 @@ spring:
         - id: product-service
           uri: lb://product-service
           predicates:
-            - Path=/api/product/**
+            - Path=/api/products/** , /api/batches/** , /api/categories/**
           filters:
-            - RewritePath=/api/product/actuator/(?<segment>.*), /actuator/${segment}
+            - RewritePath=/api/products/actuator/(?<segment>.*), /actuator/${segment}
         - id: stock-service
           uri: lb://stock-service
           predicates:

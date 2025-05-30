@@ -29,8 +29,8 @@ public class CredentialController {
     public ResponseEntity<?> registerCredential(@RequestBody Credential credential){
         try{
             Response<Statuses.CreateStatus> result = credentialService.registerCredential(credential);
-            return switch (result.getStatus()){
-                case SUCCESS -> ResponseEntity.ok(result.getCredential());
+            return switch (result.status()){
+                case SUCCESS -> ResponseEntity.ok(result.credential());
                 case USER_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","Username is in use"));
             };
         }catch(Exception e){
@@ -43,10 +43,10 @@ public class CredentialController {
     @PostMapping("/login")
     public ResponseEntity<?> loginCredential(@RequestBody Credential credential){
         try{
-            Response<Statuses.LoginStatus> result = credentialService.login(credential);
-            return switch (result.getStatus()){
-                case OK -> ResponseEntity.ok().body(Map.of("token",result.getCredential().getToken(),"username",result.getCredential().getUsername()));
-                case NOT_ACTIVE -> ResponseEntity.badRequest().body(Map.of("error","Credential was deleted"));
+            Response<Statuses.LoginStatus> result = credentialService.loginCredential(credential);
+            return switch (result.status()){
+                case OK -> ResponseEntity.ok().body(Map.of("token",result.credential().getToken(),"username",result.credential().getUsername()));
+                case SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Credential is deleted"));
                 case NOT_FOUND -> ResponseEntity.notFound().build();
                 case DENIED -> ResponseEntity.badRequest().body(Map.of("error","Wrong password"));
             };
@@ -61,9 +61,9 @@ public class CredentialController {
     public ResponseEntity<?> updateCredential(@RequestBody Credential credential, @PathVariable int id){
         try{
             Response<Statuses.UpdateStatus> result = credentialService.updateCredential(credential);
-            return switch (result.getStatus()){
-                case SUCCESS -> ResponseEntity.ok(result.getCredential());
-                case NOT_ACTIVE -> ResponseEntity.badRequest().body(Map.of("error","Credential was deleted"));
+            return switch (result.status()){
+                case SUCCESS -> ResponseEntity.ok(result.credential());
+                case SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Credential is deleted"));
                 case NOT_FOUND -> ResponseEntity.notFound().build();
                 case USER_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","Username is in use"));
             };
@@ -74,13 +74,27 @@ public class CredentialController {
     }
 
     @PutMapping("/delete/{id}")
-    public ResponseEntity<?> logicalDeleteCredential(@PathVariable int id){
+    public ResponseEntity<?> softDeleteCredential(@PathVariable int id){
         try{
-            Response<Statuses.LogicalDeleteStatus> result = credentialService.logicalDelete(id);
-            return switch (result.getStatus()){
+            Response<Statuses.SoftDeleteStatus> result = credentialService.softDeleteCredential(id);
+            return switch (result.status()){
                 case SUCCESS -> ResponseEntity.ok("Credential with id "+id+" successfully deleted");
                 case NOT_FOUND -> ResponseEntity.notFound().build();
-                case ALREADY_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Credential is already deleted"));
+                case ALREADY_SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Credential is already deleted"));
+            };
+        }catch(Exception e){
+            logger.error("Error deleting credential with id {}: {}",id,e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> hardDeleteCredential(@PathVariable int id){
+        try{
+            Response<Statuses.HardDeleteStatus> result = credentialService.hardDeleteStatus(id);
+            return switch (result.status()){
+                case SUCCESS -> ResponseEntity.ok("Credential with id "+id+" successfully deleted");
+                case NOT_FOUND -> ResponseEntity.notFound().build();
             };
         }catch(Exception e){
             logger.error("Error deleting credential with id {}: {}",id,e.getMessage(),e);

@@ -1,6 +1,6 @@
-package com.ib.userservice.config;
+package com.ib.productservice.config;
 
-import com.ib.userservice.filters.GatewayAuthFilter;
+import com.ib.productservice.filters.GatewayAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +22,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth->auth.anyRequest().permitAll())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new GatewayAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }
