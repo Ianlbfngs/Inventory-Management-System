@@ -30,9 +30,16 @@ public class BatchController {
         return batchService.obtainAll();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/id/{id}")
     public ResponseEntity<?> obtainSpecificBatch(@PathVariable int id){
-        Optional<Batch> batch = batchService.obtainSpecificBatch(id);
+        Optional<Batch> batch = batchService.obtainSpecificBatchWithId(id);
+        if(batch.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(batch);
+    }
+
+    @GetMapping("/code/{batchCode}")
+    public ResponseEntity<?> obtainSpecificBatch(@PathVariable String batchCode){
+        Optional<Batch> batch = batchService.obtainSpecificBatchWithCode(batchCode);
         if(batch.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(batch);
     }

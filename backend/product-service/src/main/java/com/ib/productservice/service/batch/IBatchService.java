@@ -17,5 +17,7 @@ public interface IBatchService {
 
     Response<Statuses.HardDeleteBatchStatus, Batch> hardDeleteBatch(int id);
 
-    Optional<Batch> obtainSpecificBatch(int id);
+    Optional<Batch> obtainSpecificBatchWithId(int id);
+
+    Optional<Batch> obtainSpecificBatchWithCode(String batch);
 }

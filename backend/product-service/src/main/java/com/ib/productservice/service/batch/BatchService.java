@@ -25,8 +25,13 @@ public class BatchService implements IBatchService{
 
 
     @Override
-    public Optional<Batch> obtainSpecificBatch(int id) {
+    public Optional<Batch> obtainSpecificBatchWithId(int id) {
         return batchRepository.findById(id);
+    }
+
+    @Override
+    public Optional<Batch> obtainSpecificBatchWithCode(String code) {
+        return batchRepository.findBatchByBatchCode(code);
     }
 
     @Override

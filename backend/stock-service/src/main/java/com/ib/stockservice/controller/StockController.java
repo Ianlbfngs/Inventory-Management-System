@@ -4,6 +4,7 @@ import com.ib.stockservice.entity.Stock;
 import com.ib.stockservice.response.Response;
 import com.ib.stockservice.response.Statuses;
 import com.ib.stockservice.service.StockService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -47,10 +48,18 @@ public class StockController {
 
     }
 
+    private String extractJwtToken(HttpServletRequest request){
+        String token = request.getHeader("Authorization");
+        if(token != null && token.startsWith("Bearer ")){
+            return token.substring(7);
+        }
+        return null;
+    }
     @PostMapping("/add")
-    public ResponseEntity<?> createStock(@RequestBody Stock stock){
+    public ResponseEntity<?> createStock(@RequestBody Stock stock, HttpServletRequest request){
+        String jwtToken = extractJwtToken(request);
         try{
-            Response<Statuses.CreateStockStatus> result = stockService.createStock(stock);
+            Response<Statuses.CreateStockStatus> result = stockService.createStock(stock,jwtToken);
             return switch (result.status()){
                 case SUCCESS ->  ResponseEntity.ok(result.stock());
                 case BATCH_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Batch not found"));
@@ -63,9 +72,10 @@ public class StockController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateStock(@PathVariable int id,@RequestBody Stock stock){
+    public ResponseEntity<?> updateStock(@PathVariable int id,@RequestBody Stock stock,HttpServletRequest request){
+        String jwtToken = extractJwtToken(request);
         try{
-            Response<Statuses.UpdateStockStatus> result = stockService.updateStock(id,stock);
+            Response<Statuses.UpdateStockStatus> result = stockService.updateStock(id,stock,jwtToken);
             return switch(result.status()){
                 case SUCCESS -> ResponseEntity.ok(result.stock());
                 case BATCH_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Batch not found"));
