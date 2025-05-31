@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,15 +26,25 @@ public class ProductController {
     }
 
     @GetMapping("/all")
-    public List<Product> obtainAllProducts(){
-        return productService.obtainAll();
+    public ResponseEntity<?> obtainAllProducts(){
+        try{
+            return ResponseEntity.ok(productService.obtainAll());
+        }catch(Exception e){
+            logger.error("Error obtaining all products: {}",e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> obtainSpecificProduct(@PathVariable int id){
-        Optional<Product> product = productService.obtainSpecificProduct(id);
-        if(product.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(product);
+        try{
+            Optional<Product> product = productService.obtainSpecificProduct(id);
+            if(product.isEmpty()) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(product);
+        }catch(Exception e){
+            logger.error("Error obtaining the product with id {}: {}",id,e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
     }
 
     @PostMapping("/add")
