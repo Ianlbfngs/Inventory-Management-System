@@ -6,6 +6,7 @@ import com.ib.productservice.response.Statuses;
 import com.ib.productservice.service.batch.BatchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,27 +22,44 @@ public class BatchController {
 
     private final BatchService batchService;
 
+    @Autowired
     public BatchController(BatchService batchService){
         this.batchService = batchService;
     }
 
     @GetMapping("/all")
-    public List<Batch> obtainAllCategories(){
-        return batchService.obtainAll();
+    public ResponseEntity<?> obtainAllCategories(){
+        try{
+            return ResponseEntity.ok(batchService.obtainAll());
+        }catch(Exception e){
+            logger.error("Error obtaining all batches: {}",e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
     }
 
     @GetMapping("/id/{id}")
     public ResponseEntity<?> obtainSpecificBatch(@PathVariable int id){
-        Optional<Batch> batch = batchService.obtainSpecificBatchWithId(id);
-        if(batch.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(batch);
+        try{
+            Optional<Batch> batch = batchService.obtainSpecificBatchWithId(id);
+            if(batch.isEmpty()) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(batch);
+        }catch(Exception e){
+            logger.error("Error obtaining the batch with id {}: {}",id,e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
+
     }
 
     @GetMapping("/code/{batchCode}")
     public ResponseEntity<?> obtainSpecificBatch(@PathVariable String batchCode){
-        Optional<Batch> batch = batchService.obtainSpecificBatchWithCode(batchCode);
-        if(batch.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(batch);
+        try{
+            Optional<Batch> batch = batchService.obtainSpecificBatchWithCode(batchCode);
+            if(batch.isEmpty()) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(batch);
+        }catch(Exception e){
+            logger.error("Error obtaining the batch with code {}: {}",batchCode,e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
     }
 
     @PostMapping("/add")
@@ -51,6 +69,7 @@ public class BatchController {
             return switch (result.status()){
                 case SUCCESS ->  ResponseEntity.ok(result.entity());
                 case CODE_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","Batch code is in use"));
+                case NEGATIVE_AMOUNT -> ResponseEntity.badRequest().body(Map.of("error","Amount must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error creating the Batch with id {}: {}", batch.getId(), e.getMessage(),e);
@@ -66,6 +85,7 @@ public class BatchController {
                 case SUCCESS -> ResponseEntity.ok(result.entity());
                 case CODE_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","Batch code is in use"));
                 case NOT_FOUND -> ResponseEntity.notFound().build();
+                case NEGATIVE_AMOUNT -> ResponseEntity.badRequest().body(Map.of("error","Amount must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error updating the Batch with id {}: {}", batch.getId(), e.getMessage(),e);

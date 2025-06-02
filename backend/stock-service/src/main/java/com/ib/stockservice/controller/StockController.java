@@ -7,6 +7,7 @@ import com.ib.stockservice.service.StockService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class StockController {
 
     private final StockService stockService;
 
+    @Autowired
     public StockController(StockService stockService){
         this.stockService = stockService;
     }
@@ -59,11 +61,14 @@ public class StockController {
     public ResponseEntity<?> createStock(@RequestBody Stock stock, HttpServletRequest request){
         String jwtToken = extractJwtToken(request);
         try{
-            Response<Statuses.CreateStockStatus> result = stockService.createStock(stock,jwtToken);
+            Response<Statuses.CreateAndUpdateStockStatus> result = stockService.createStock(stock,jwtToken);
             return switch (result.status()){
                 case SUCCESS ->  ResponseEntity.ok(result.stock());
                 case BATCH_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Batch not found"));
                 case STORAGE_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Storage not found"));
+                case STOCK_NOT_FOUND -> ResponseEntity.badRequest().build(); //never will be stock_not_found
+                case STOCK_ALREADY_EXISTS ->  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error","Combination of storage id and batch code already exists"));
+                case NEGATIVE_QUANTITY -> ResponseEntity.badRequest().body(Map.of("error","Quantity must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error creating the product with id {}: {}", stock.getId(), e.getMessage(),e);
@@ -75,12 +80,14 @@ public class StockController {
     public ResponseEntity<?> updateStock(@PathVariable int id,@RequestBody Stock stock,HttpServletRequest request){
         String jwtToken = extractJwtToken(request);
         try{
-            Response<Statuses.UpdateStockStatus> result = stockService.updateStock(id,stock,jwtToken);
+            Response<Statuses.CreateAndUpdateStockStatus> result = stockService.updateStock(id,stock,jwtToken);
             return switch(result.status()){
                 case SUCCESS -> ResponseEntity.ok(result.stock());
                 case BATCH_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Batch not found"));
                 case STORAGE_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Storage not found"));
                 case STOCK_NOT_FOUND -> ResponseEntity.notFound().build();
+                case STOCK_ALREADY_EXISTS ->  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error","Combination of storage id and batch code already exists"));
+                case NEGATIVE_QUANTITY -> ResponseEntity.badRequest().body(Map.of("error","Quantity must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error updating the stock with id {}: {}", stock.getId(), e.getMessage(),e);

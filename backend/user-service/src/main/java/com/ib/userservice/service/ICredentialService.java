@@ -10,4 +10,6 @@ public interface ICredentialService {
     Response<Statuses.UpdateStatus> updateCredential(Credential credential);
     Response<Statuses.SoftDeleteStatus> softDeleteCredential(int id);
     Response<Statuses.HardDeleteStatus> hardDeleteStatus(int id);
+
+    int findCredentialIdByUsername(String username) throws Exception;
 }

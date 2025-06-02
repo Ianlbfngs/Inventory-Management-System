@@ -4,6 +4,7 @@ import com.ib.productservice.entity.Category;
 import com.ib.productservice.repository.CategoryRepository;
 import com.ib.productservice.response.Response;
 import com.ib.productservice.response.Statuses;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +15,7 @@ public class CategoryService implements ICategoryService {
 
     private final CategoryRepository categoryRepository;
 
+    @Autowired
     public CategoryService(CategoryRepository categoryRepository){
         this.categoryRepository = categoryRepository;
     }

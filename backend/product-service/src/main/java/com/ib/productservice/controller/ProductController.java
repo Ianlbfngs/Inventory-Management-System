@@ -54,6 +54,7 @@ public class ProductController {
             return switch (result.status()){
                 case SUCCESS ->  ResponseEntity.ok(result.entity());
                 case SKU_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","SKU is in use"));
+                case NEGATIVE_WEIGHT -> ResponseEntity.badRequest().body(Map.of("error","Weight must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error creating the product with id {}: {}", product.getId(), e.getMessage(),e);
@@ -70,6 +71,7 @@ public class ProductController {
                 case SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Product is soft deleted"));
                 case NOT_FOUND -> ResponseEntity.notFound().build();
                 case SKU_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","SKU is in use"));
+                case NEGATIVE_WEIGHT -> ResponseEntity.badRequest().body(Map.of("error","Weight must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error updating the product with id {}: {}", product.getId(), e.getMessage(),e);

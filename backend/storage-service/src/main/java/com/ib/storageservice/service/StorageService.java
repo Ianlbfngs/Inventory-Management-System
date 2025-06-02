@@ -4,6 +4,7 @@ import com.ib.storageservice.entity.Storage;
 import com.ib.storageservice.repository.StorageRepository;
 import com.ib.storageservice.response.Response;
 import com.ib.storageservice.response.Statuses;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ public class StorageService implements IStorageService {
 
     private final StorageRepository storageRepository;
 
+    @Autowired
     public StorageService(StorageRepository storageRepository){
         this.storageRepository = storageRepository;
     }
@@ -31,12 +33,14 @@ public class StorageService implements IStorageService {
 
     @Override
     public Response<Statuses.CreateStorageStatus> createStorage(Storage storage) {
+        if(storage.getCapacity()<=0) return new Response<>(Statuses.CreateStorageStatus.NEGATIVE_CAPACITY,null);
         storage.setActive(true);
         return new Response<>(Statuses.CreateStorageStatus.SUCCESS,storageRepository.save(storage));
     }
 
     @Override
     public Response<Statuses.UpdateStorageStatus> updateStatus(int id, Storage storage) {
+        if(storage.getCapacity()<=0) return new Response<>(Statuses.UpdateStorageStatus.NEGATIVE_CAPACITY,null);
         storage.setId(id);
         Optional<Storage> originalStorage = storageRepository.findById(storage.getId());
         if(originalStorage.isEmpty()) return new Response<>(Statuses.UpdateStorageStatus.NOT_FOUND,null);

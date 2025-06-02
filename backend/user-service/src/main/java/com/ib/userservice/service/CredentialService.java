@@ -5,7 +5,9 @@ import com.ib.userservice.repository.CredentialRepository;
 import com.ib.userservice.response.Response;
 import com.ib.userservice.response.Statuses;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Optional;
 
@@ -71,5 +73,13 @@ public class CredentialService implements ICredentialService{
         if(!credentialRepository.existsById(id)) return new Response<>(Statuses.HardDeleteStatus.NOT_FOUND,null);
         credentialRepository.deleteById(id);
         return new Response<>(Statuses.HardDeleteStatus.SUCCESS,null);
+    }
+
+    @Override
+    public int findCredentialIdByUsername(String username) throws HttpClientErrorException {
+        Optional<Credential> credential = credentialRepository.findCredentialByUsername(username);
+        if(credential.isEmpty()) throw new HttpClientErrorException(HttpStatus.NOT_FOUND);
+        return credential.get().getId();
+
     }
 }

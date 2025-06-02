@@ -7,6 +7,7 @@ import com.ib.userservice.service.CredentialService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,17 @@ public class CredentialController {
     @Autowired
     public CredentialController(CredentialService credentialService){
         this.credentialService = credentialService;
+    }
+
+    @GetMapping("/username/{username}")
+    public ResponseEntity<?> obtainCredentialIdWithUsername(@PathVariable String username){
+        try{
+            int id = credentialService.findCredentialIdByUsername(username);
+            return ResponseEntity.ok(Map.of("id",id,"username",username));
+        }catch(Exception e){
+            logger.error("Error obtaining credential id for the username {}: {}", username, e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
     }
 
     @PostMapping("/register")

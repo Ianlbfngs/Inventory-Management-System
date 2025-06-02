@@ -6,6 +6,7 @@ import com.ib.productservice.response.Statuses;
 import com.ib.productservice.service.category.CategoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,20 +22,33 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
+    @Autowired
     public CategoryController(CategoryService categoryService){
         this.categoryService = categoryService;
     }
 
     @GetMapping("/all")
-    public List<Category> obtainAllCategories(){
-        return categoryService.obtainAll();
+    public ResponseEntity<?> obtainAllCategories(){
+        try{
+            return ResponseEntity.ok(categoryService.obtainAll());
+
+        }catch(Exception e){
+            logger.error("Error obtaining all categories: {}",e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> obtainSpecificCategory(@PathVariable int id){
-        Optional<Category> category = categoryService.obtainSpecificCategory(id);
-        if(category.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(category);
+        try{
+            Optional<Category> category = categoryService.obtainSpecificCategory(id);
+            if(category.isEmpty()) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(category);
+        }catch(Exception e){
+            logger.error("Error obtaining the category with id {}: {}",id,e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
+
     }
 
     @PostMapping("/add")

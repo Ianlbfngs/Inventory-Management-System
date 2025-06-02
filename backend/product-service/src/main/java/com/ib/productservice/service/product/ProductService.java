@@ -32,6 +32,7 @@ public class ProductService implements IProductService{
 
     @Override
     public Response<Statuses.CreateProductStatus, Product> createProduct(Product product) {
+        if(product.getWeight() <=0) return new Response<>(Statuses.CreateProductStatus.NEGATIVE_WEIGHT,null);
         if(productRepository.existsProductBySKU(product.getSKU())) return new Response<>(Statuses.CreateProductStatus.SKU_IN_USE,null);
         product.setActive(true);
         return new Response<>(Statuses.CreateProductStatus.SUCCESS,productRepository.save(product));
@@ -39,6 +40,7 @@ public class ProductService implements IProductService{
 
     @Override
     public Response<Statuses.UpdateProductStatus, Product> updateProduct(int id,Product product) {
+        if(product.getWeight() <=0) return new Response<>(Statuses.UpdateProductStatus.NEGATIVE_WEIGHT,null);
         product.setId(id);
         Optional<Product> originalProduct = productRepository.findById(product.getId());
         if(originalProduct.isEmpty()) return new Response<>(Statuses.UpdateProductStatus.NOT_FOUND,null);

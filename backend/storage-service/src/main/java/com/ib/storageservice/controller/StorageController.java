@@ -6,6 +6,7 @@ import com.ib.storageservice.response.Statuses;
 import com.ib.storageservice.service.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,7 @@ public class StorageController {
 
     private final StorageService storageService;
 
+    @Autowired
     public StorageController(StorageService storageService){
         this.storageService = storageService;
     }
@@ -51,7 +53,10 @@ public class StorageController {
     public ResponseEntity<?> createStorage(@RequestBody Storage storage){
         try{
             Response<Statuses.CreateStorageStatus> result = storageService.createStorage(storage);
-            return ResponseEntity.ok(result.storage());
+            return switch (result.status()){
+                case SUCCESS ->   ResponseEntity.ok(result.storage());
+                case NEGATIVE_CAPACITY -> ResponseEntity.badRequest().body(Map.of("error","Capacity must be higher than 0"));
+            };
         }catch(Exception e){
             logger.error("Error creating the storage with id {}:{}", storage.getId(),e.getMessage(),e);
             return ResponseEntity.status(500).body("Something went wrong");
@@ -66,6 +71,7 @@ public class StorageController {
                 case SUCCESS -> ResponseEntity.ok(result.storage());
                 case SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Storage is soft deleted"));
                 case NOT_FOUND -> ResponseEntity.notFound().build();
+                case NEGATIVE_CAPACITY -> ResponseEntity.badRequest().body(Map.of("error","Capacity must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error updating the storage with id {}: {}", storage.getId(), e.getMessage(),e);

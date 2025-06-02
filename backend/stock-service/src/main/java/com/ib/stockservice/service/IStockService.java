@@ -10,11 +10,11 @@ import java.util.Optional;
 public interface IStockService {
     List<Stock> obtainAll();
 
-    Response<Statuses.CreateStockStatus> createStock(Stock stock,String jwtToken);
+    Response<Statuses.CreateAndUpdateStockStatus> createStock(Stock stock, String jwtToken);
 
     Optional<Stock> obtainSpecificStock(int id);
 
-    Response<Statuses.UpdateStockStatus> updateStock(int id, Stock stock,String jwtToken);
+    Response<Statuses.CreateAndUpdateStockStatus> updateStock(int id, Stock stock, String jwtToken);
 
     Response<Statuses.HardDeleteStockStatus> hardDeleteStock(int id);
 }
