@@ -2,9 +2,9 @@ package com.ib.movementsservice.service.movement;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ib.movementsservice.controller.MovementController;
-import com.ib.movementsservice.dto.CredentialDTO;
+import com.ib.movementsservice.dto.StockDTO;
 import com.ib.movementsservice.entity.Movement;
+import com.ib.movementsservice.entity.MovementType;
 import com.ib.movementsservice.repository.MovementRespository;
 import com.ib.movementsservice.response.Response;
 import com.ib.movementsservice.response.Statuses;
@@ -47,7 +47,7 @@ public class MovementService implements IMovementService{
         return movementRepository.findById(id);
     }
 
-    public String extractUsernameFromJwtToken(String token) throws JsonProcessingException {
+    private String extractUsernameFromJwtToken(String token) throws JsonProcessingException {
         String[] tokenParts = token.split("\\.");
         if (tokenParts.length != 3) {
             throw new IllegalArgumentException("Invalid JWT token");
@@ -59,71 +59,161 @@ public class MovementService implements IMovementService{
         return claims.get("sub").toString();
     }
 
+    private Optional<StockDTO> obtainStockById(int stockId, HttpHeaders headers){
+        try{
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<StockDTO> stockGetResponse= restTemplate.exchange("http://localhost:8080/api/stock/"+stockId,HttpMethod.GET,entity, StockDTO.class);
+
+            assert stockGetResponse.getBody() != null;
+
+            return Optional.of(stockGetResponse.getBody());
+        }catch(HttpClientErrorException.NotFound e){
+            return Optional.empty();
+        } catch (AssertionError e) {
+            logger.error("Error stock get response body is null: {}", e.getMessage(),e);
+            throw new AssertionError(e);
+        }
+    }
+
+    private boolean updateStockById(StockDTO stockToUpdate,int stockId,HttpHeaders headers){
+        try{
+            HttpEntity<StockDTO> originalStockEntity = new HttpEntity<>(stockToUpdate,headers);
+            restTemplate.exchange("http://localhost:8080/api/stock/update/"+stockId,HttpMethod.PUT,originalStockEntity,Void.class);
+            return false;
+        }catch(Exception e){
+            logger.error("Error updating the stock with id {}: {}",stockId, e.getMessage(),e);
+            return true;
+        }
+    }
+
+
+    private int createStock(StockDTO stockDTO,int movementStockAmount, HttpHeaders headers){
+        //sets of new stock pending and available values
+        stockDTO.setPendingStock(movementStockAmount);
+        stockDTO.setAvailableStock(0);
+        //batch code and storage id are sent in the movement post request
+        try{
+            HttpEntity<StockDTO> newStockEntity = new HttpEntity<>(stockDTO,headers);
+            ResponseEntity<StockDTO> stockCreationResponse = restTemplate.exchange("http://localhost:8080/api/stock/add",HttpMethod.POST,newStockEntity,StockDTO.class);
+            assert stockCreationResponse.getBody() != null;
+            return stockCreationResponse.getBody().getId();
+        }catch (AssertionError e) {
+            logger.error("Error creating stock, response body null: {}", e.getMessage(),e);
+            throw new AssertionError(e);
+        }
+
+    }
+
     @Override
-    public Response<Statuses.CreateMovementStatus, Movement> createMovement(Movement movement, String jwtToken) {
-        if(movement.getOriginStorageId() ==  movement.getTargetStorageId()) return new Response<>(Statuses.CreateMovementStatus.SAME_STORAGE,null);
-        if(movement.getAmount() <=0) return new Response<>(Statuses.CreateMovementStatus.NEGATIVE_AMOUNT,null);
+    public Response<Statuses.CreateMovementStatus, Movement> createMovement(Movement movement, String jwtToken) throws JsonProcessingException {
+        //overcharge used only when the movement is from an storage to an external entity (like a supermarket)
+        //stock -> external entity
+        //only needs to update stock
+
+        if(movement.getStockAmount() <=0) return new Response<>(Statuses.CreateMovementStatus.INVALID_STOCK_AMOUNT,null);
+
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + jwtToken);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        try{
-            ResponseEntity<Void> responseBatch = restTemplate.exchange("http://localhost:8080/api/batches/code/" + movement.getBatchCode(), HttpMethod.GET,entity, Void.class);
+        Optional<StockDTO> originStock = obtainStockById(movement.getOriginStockId(), headers);
 
-            String username = extractUsernameFromJwtToken(jwtToken);
+        if(originStock.isEmpty()) return new Response<>(Statuses.CreateMovementStatus.ORIGIN_STOCK_NOT_FOUND,null);
+        if((originStock.get().getAvailableStock() - movement.getStockAmount()) < 0)return new Response<>(Statuses.CreateMovementStatus.NOT_ENOUGH_STOCK,null);
 
-            try{
-                ResponseEntity<CredentialDTO> responseUser = restTemplate.exchange("http://localhost:8080/api/credentials/username/" + username, HttpMethod.GET,entity, CredentialDTO.class);
-                assert responseUser.getBody() != null;
-                movement.setUserId(responseUser.getBody().getId());
+        originStock.get().setAvailableStock(originStock.get().getAvailableStock() - movement.getStockAmount());
 
-                if(movement.getOriginStorageId()==0){ // id 0 means that the movement comes from an outer source (like a supplier)
-                    try{
-                        ResponseEntity<Void> responseTargetStorage = restTemplate.exchange("http://localhost:8080/api/storage/" + movement.getTargetStorageId(), HttpMethod.GET,entity, Void.class);
-                        return new Response<>(Statuses.CreateMovementStatus.SUCCESS,movementRepository.save(movement));
+        if(updateStockById(originStock.get(), movement.getOriginStockId(),headers)) return new Response<>(Statuses.CreateMovementStatus.ERROR_UPDATING_STOCK,null);
 
-                    }catch(HttpClientErrorException.NotFound e){
-                        logger.error("Error requesting the target storage with id {}: {}",movement.getTargetStorageId(),e.getMessage(),e);
-                        return new Response<>(Statuses.CreateMovementStatus.TARGET_STORAGE_NOT_FOUND,null);
-                    }
-                }else if(movement.getTargetStorageId() ==0){ // id 0 means that the movement goes to an outer source/not to a storage (like a supermarket)
-                    try{
-                        ResponseEntity<Void> responseOriginStorage = restTemplate.exchange("http://localhost:8080/api/storage/" + movement.getOriginStorageId(), HttpMethod.GET,entity, Void.class);
-                        return new Response<>(Statuses.CreateMovementStatus.SUCCESS,movementRepository.save(movement));
+        movement.setCreatedByUser(extractUsernameFromJwtToken(jwtToken));
 
-                    }catch(HttpClientErrorException.NotFound e){
-                        logger.error("Error requesting the origin storage with id {}: {}",movement.getOriginStorageId(),e.getMessage(),e);
-                        return new Response<>(Statuses.CreateMovementStatus.ORIGIN_STORAGE_NOT_FOUND,null);
-                    }
-                }else{ //case where both the origin and the target are != 0, so its a movement between two storages
-                    try{
-                        ResponseEntity<Void> responseOriginStorage = restTemplate.exchange("http://localhost:8080/api/storage/" + movement.getOriginStorageId(), HttpMethod.GET,entity, Void.class);
-                        try{
-                            ResponseEntity<Void> responseTargetStorage = restTemplate.exchange("http://localhost:8080/api/storage/" + movement.getTargetStorageId(), HttpMethod.GET,entity, Void.class);
-                            return new Response<>(Statuses.CreateMovementStatus.SUCCESS,movementRepository.save(movement));
+        return new Response<>(Statuses.CreateMovementStatus.SUCCESS,movementRepository.save(movement));
+    }
 
-                        }catch(HttpClientErrorException.NotFound e){
-                            logger.error("Error requesting the origin storage with id {}: {}",movement.getOriginStorageId(),e.getMessage(),e);
-                            return new Response<>(Statuses.CreateMovementStatus.TARGET_STORAGE_NOT_FOUND,null);
-                        }
-                    }catch(HttpClientErrorException.NotFound e){
-                        logger.error("Error requesting the target storage with id {}: {}",movement.getTargetStorageId(),e.getMessage(),e);
-                        return new Response<>(Statuses.CreateMovementStatus.ORIGIN_STORAGE_NOT_FOUND,null);
-                    }
-                }
+    @Override
+    public Response<Statuses.CreateMovementStatus, Movement> createMovement(Movement movement,StockDTO stockDTO, String jwtToken) throws JsonProcessingException {
+        //overcharge used when the movement is supplier -> stock or stock -> stock
+        //first case always needs to create a new stock
+        //second case may need creating a new stock, which is determined by the stockDto parameter
 
-            }catch(HttpClientErrorException.NotFound e){
-                logger.error("Error requesting the user {}: {}",username,e.getMessage(),e);
-                return new Response<>(Statuses.CreateMovementStatus.USER_NOT_FOUND,null);
+        if(movement.getStockAmount() <=0) return new Response<>(Statuses.CreateMovementStatus.INVALID_STOCK_AMOUNT,null);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + jwtToken);
+
+
+        movement.setCreatedByUser(extractUsernameFromJwtToken(jwtToken));
+
+
+        if(movement.getMovementType().getId()==1){ //first case (supplier -> stock)
+            movement.setTargetStockId(createStock(stockDTO,movement.getStockAmount(),headers)); // creates stock for the new batch to be received
+        }else{ //second case (stock -> stock)
+            if(movement.getOriginStockId() ==  movement.getTargetStockId()) return new Response<>(Statuses.CreateMovementStatus.SAME_STOCK,null);
+
+            Optional<StockDTO> originStock = obtainStockById(movement.getOriginStockId(),headers);
+
+            if(originStock.isEmpty()) return new Response<>(Statuses.CreateMovementStatus.ORIGIN_STOCK_NOT_FOUND,null);
+            if(originStock.get().getAvailableStock() - movement.getStockAmount() < 0)return new Response<>(Statuses.CreateMovementStatus.NOT_ENOUGH_STOCK,null);
+
+            if(stockDTO == null){ //subcase where stockDTO parameter is null, so no new stock is needed
+                Optional<StockDTO> targetStock = obtainStockById(movement.getTargetStockId(),headers);
+
+                if(targetStock.isEmpty()) return new Response<>(Statuses.CreateMovementStatus.TARGET_STOCK_NOT_FOUND,null);
+
+                targetStock.get().setPendingStock(targetStock.get().getPendingStock() + movement.getStockAmount());
+
+                if(updateStockById(targetStock.get(), movement.getTargetStockId(),headers)) return new Response<>(Statuses.CreateMovementStatus.ERROR_UPDATING_STOCK,null);
+            }else{ //subcase where target stock must be created
+                stockDTO.setBatchCode(originStock.get().getBatchCode());
+                movement.setTargetStockId(createStock(stockDTO,movement.getStockAmount(),headers));
             }
 
-        }catch(HttpClientErrorException.NotFound e){
-            logger.error("Error requesting the batch with code {}: {}",movement.getBatchCode(),e.getMessage(),e);
-            return new Response<>(Statuses.CreateMovementStatus.BATCH_NOT_FOUND,null);
-        } catch (JsonProcessingException e) {
-            logger.error("Error requesting the batch with code {}: {}",movement.getBatchCode(),e.getMessage(),e);
-            throw new RuntimeException(e);
+
+            originStock.get().setAvailableStock(originStock.get().getAvailableStock() - movement.getStockAmount());
+
+            if(updateStockById(originStock.get(), movement.getOriginStockId(),headers)) return new Response<>(Statuses.CreateMovementStatus.ERROR_UPDATING_STOCK,null);
         }
+
+        return new Response<>(Statuses.CreateMovementStatus.SUCCESS,movementRepository.save(movement));
+    }
+
+    @Override
+    public Response<Statuses.MovementReceptionStatus, Movement> movementReception(int movementId, boolean receptionStatus, String jwtToken) {
+        Optional<Movement> movement = movementRepository.findById(movementId);
+        if(movement.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.MOVEMENT_NOT_FOUND,null);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + jwtToken);
+
+        Optional<StockDTO> targetStock;
+
+        if(receptionStatus){ //received
+             targetStock = obtainStockById(movement.get().getTargetStockId(),headers);
+
+            if(targetStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.TARGET_STOCK_NOT_FOUND,null);
+
+            targetStock.get().setAvailableStock(targetStock.get().getAvailableStock() + movement.get().getStockAmount());
+            targetStock.get().setPendingStock(targetStock.get().getPendingStock() - movement.get().getStockAmount());
+
+            if(updateStockById(targetStock.get(),movement.get().getTargetStockId(),headers)) return new Response<>(Statuses.MovementReceptionStatus.ERROR_UPDATING_STOCK,null);
+            movement.get().setStatus(1);
+        }else{ //cancelled = reverts the movement
+            targetStock = obtainStockById(movement.get().getTargetStockId(),headers);
+            if(targetStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.TARGET_STOCK_NOT_FOUND,null);
+
+            Optional<StockDTO> originStock = obtainStockById(movement.get().getOriginStockId(),headers);
+            if(originStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.ORIGIN_STOCK_NOT_FOUND,null);
+
+            targetStock.get().setPendingStock(targetStock.get().getPendingStock() - movement.get().getStockAmount());
+            originStock.get().setAvailableStock(originStock.get().getAvailableStock() + movement.get().getStockAmount());
+
+
+            if(updateStockById(targetStock.get(),movement.get().getTargetStockId(),headers) || updateStockById(originStock.get(),movement.get().getOriginStockId(),headers)) return new Response<>(Statuses.MovementReceptionStatus.ERROR_UPDATING_STOCK,null);
+            movement.get().setStatus(-1);
+        }
+
+
+        return new Response<>(Statuses.MovementReceptionStatus.SUCCESS,movementRepository.save(movement.get()));
     }
 
     @Override
@@ -132,4 +222,8 @@ public class MovementService implements IMovementService{
         movementRepository.deleteById(id);
         return new Response<>(Statuses.HardDeleteMovementStatus.SUCCESS,null);
     }
+
+
+
+
 }

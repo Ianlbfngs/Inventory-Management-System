@@ -22,32 +22,41 @@ public class BatchService implements IBatchService{
 
     @Override
     public List<Batch> obtainAll() {
-        return batchRepository.findAll();
+        return batchRepository.findAllByActive(true);
     }
 
 
     @Override
     public Optional<Batch> obtainSpecificBatchWithId(int id) {
-        return batchRepository.findById(id);
+        return batchRepository.findByIdAndActive(id,true);
     }
 
     @Override
     public Optional<Batch> obtainSpecificBatchWithCode(String code) {
-        return batchRepository.findBatchByBatchCode(code);
+        return batchRepository.findBatchByBatchCodeAndActive(code,true);
     }
+
+
 
     @Override
     public Response<Statuses.CreateBatchStatus, Batch> createBatch(Batch batch) {
-        if(batch.getAmount() <=0) return new Response<>(Statuses.CreateBatchStatus.NEGATIVE_AMOUNT,null);
         if(batchRepository.existsBatchByBatchCode(batch.getBatchCode())) return new Response<>(Statuses.CreateBatchStatus.CODE_IN_USE,null);
         return new Response<>(Statuses.CreateBatchStatus.SUCCESS,batchRepository.save(batch));
     }
 
     @Override
+    public Response<Statuses.SoftDeleteBatchStatus, Batch> softDeleteBatch(int id) {
+        Optional<Batch> batchToDelete = batchRepository.findById(id);
+        if(batchToDelete.isEmpty()) return new Response<>(Statuses.SoftDeleteBatchStatus.NOT_FOUND,null);
+        if(!batchToDelete.get().isActive()) return new Response<>(Statuses.SoftDeleteBatchStatus.ALREADY_SOFT_DELETED,null);
+        batchToDelete.get().setActive(false);
+        return new Response<>(Statuses.SoftDeleteBatchStatus.SUCCESS,batchRepository.save(batchToDelete.get()));
+    }
+
+    @Override
     public Response<Statuses.UpdateBatchStatus, Batch> updateBatch(int id, Batch batch) {
-        if(batch.getAmount() <=0) return new Response<>(Statuses.UpdateBatchStatus.NEGATIVE_AMOUNT,null);
         batch.setId(id);
-        Optional<Batch> originalBatch = batchRepository.findById(id);
+        Optional<Batch> originalBatch = batchRepository.findByIdAndActive(id,true);
         if(originalBatch.isEmpty()) return new Response<>(Statuses.UpdateBatchStatus.NOT_FOUND,null);
         if(!originalBatch.get().getBatchCode().equals(batch.getBatchCode()) && batchRepository.existsBatchByBatchCode(batch.getBatchCode())) return new Response<>(Statuses.UpdateBatchStatus.CODE_IN_USE,null);
         return new Response<>(Statuses.UpdateBatchStatus.SUCCESS,batchRepository.save(batch));

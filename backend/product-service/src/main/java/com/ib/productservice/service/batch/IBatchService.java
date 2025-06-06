@@ -20,4 +20,6 @@ public interface IBatchService {
     Optional<Batch> obtainSpecificBatchWithId(int id);
 
     Optional<Batch> obtainSpecificBatchWithCode(String batch);
+
+    Response<Statuses.SoftDeleteBatchStatus, Batch> softDeleteBatch(int id);
 }

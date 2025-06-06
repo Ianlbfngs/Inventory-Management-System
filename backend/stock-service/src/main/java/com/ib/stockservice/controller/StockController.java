@@ -50,6 +50,8 @@ public class StockController {
 
     }
 
+
+
     private String extractJwtToken(HttpServletRequest request){
         String token = request.getHeader("Authorization");
         if(token != null && token.startsWith("Bearer ")){
@@ -57,18 +59,19 @@ public class StockController {
         }
         return null;
     }
+
     @PostMapping("/add")
     public ResponseEntity<?> createStock(@RequestBody Stock stock, HttpServletRequest request){
         String jwtToken = extractJwtToken(request);
         try{
-            Response<Statuses.CreateAndUpdateStockStatus> result = stockService.createStock(stock,jwtToken);
+            Response<Statuses.CreateStockStatus> result = stockService.createStock(stock,jwtToken);
             return switch (result.status()){
                 case SUCCESS ->  ResponseEntity.ok(result.stock());
                 case BATCH_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Batch not found"));
                 case STORAGE_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Storage not found"));
-                case STOCK_NOT_FOUND -> ResponseEntity.badRequest().build(); //never will be stock_not_found
-                case STOCK_ALREADY_EXISTS ->  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error","Combination of storage id and batch code already exists"));
-                case NEGATIVE_QUANTITY -> ResponseEntity.badRequest().body(Map.of("error","Quantity must be higher than 0"));
+                case NEGATIVE_AVAILABLE_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Available stock must be higher than 0"));
+                case NEGATIVE_PENDING_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Pending stock must be higher than 0"));
+                case STOCK_ALREADY_EXISTS -> ResponseEntity.badRequest().body(Map.of("error","Stock is already created"));
             };
         }catch(Exception e){
             logger.error("Error creating the product with id {}: {}", stock.getId(), e.getMessage(),e);
@@ -76,21 +79,22 @@ public class StockController {
         }
     }
 
+
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateStock(@PathVariable int id,@RequestBody Stock stock,HttpServletRequest request){
-        String jwtToken = extractJwtToken(request);
+    public ResponseEntity<?> updateStock(@PathVariable int id,@RequestBody Stock stock){
         try{
-            Response<Statuses.CreateAndUpdateStockStatus> result = stockService.updateStock(id,stock,jwtToken);
+            Response<Statuses.UpdateStockStatus> result = stockService.updateStock(id,stock);
             return switch(result.status()){
                 case SUCCESS -> ResponseEntity.ok(result.stock());
-                case BATCH_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Batch not found"));
-                case STORAGE_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Storage not found"));
-                case STOCK_NOT_FOUND -> ResponseEntity.notFound().build();
-                case STOCK_ALREADY_EXISTS ->  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error","Combination of storage id and batch code already exists"));
-                case NEGATIVE_QUANTITY -> ResponseEntity.badRequest().body(Map.of("error","Quantity must be higher than 0"));
+                case STOCK_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Stock not found"));
+                case NEGATIVE_AVAILABLE_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Available stock must be higher than 0"));
+                case NEGATIVE_PENDING_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Pending stock must be higher than 0"));
+                case NOTHING_TO_UPDATE -> ResponseEntity.badRequest().body(Map.of("error","Only can update available or pending stock"));
+                case NEGATIVE_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Both stocks must be higher than 0"));
+                case NOT_ENOUGH_STOCK -> null;
             };
         }catch(Exception e){
-            logger.error("Error updating the stock with id {}: {}", stock.getId(), e.getMessage(),e);
+            logger.error("Error updating the stock with id {}: {}", id, e.getMessage(),e);
             return ResponseEntity.status(500).body("Something went wrong");
         }
     }

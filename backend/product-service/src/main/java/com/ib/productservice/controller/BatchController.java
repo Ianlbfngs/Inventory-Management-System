@@ -69,7 +69,6 @@ public class BatchController {
             return switch (result.status()){
                 case SUCCESS ->  ResponseEntity.ok(result.entity());
                 case CODE_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","Batch code is in use"));
-                case NEGATIVE_AMOUNT -> ResponseEntity.badRequest().body(Map.of("error","Amount must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error creating the Batch with id {}: {}", batch.getId(), e.getMessage(),e);
@@ -85,10 +84,24 @@ public class BatchController {
                 case SUCCESS -> ResponseEntity.ok(result.entity());
                 case CODE_IN_USE -> ResponseEntity.badRequest().body(Map.of("error","Batch code is in use"));
                 case NOT_FOUND -> ResponseEntity.notFound().build();
-                case NEGATIVE_AMOUNT -> ResponseEntity.badRequest().body(Map.of("error","Amount must be higher than 0"));
             };
         }catch(Exception e){
             logger.error("Error updating the Batch with id {}: {}", batch.getId(), e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
+    }
+
+    @PutMapping("/delete/{id}")
+    public ResponseEntity<?> softDeleteBatch(@PathVariable int id){
+        try{
+            Response<Statuses.SoftDeleteBatchStatus,Batch> result = batchService.softDeleteBatch(id);
+            return switch(result.status()){
+                case SUCCESS -> ResponseEntity.ok(result.entity());
+                case ALREADY_SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error",""));
+                case NOT_FOUND -> ResponseEntity.notFound().build();
+            };
+        }catch(Exception e){
+            logger.error("Error soft deleting the Batch with id {}: {}", id, e.getMessage(),e);
             return ResponseEntity.status(500).body("Something went wrong");
         }
     }

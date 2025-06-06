@@ -23,6 +23,9 @@ public class Stock {
     @Column(name = "batch_code")
     String batchCode;
 
-    int quantity;
+    @Column(name = "available_stock")
+    Integer availableStock;
+    @Column(name = "pending_stock")
+    Integer pendingStock;
 
 }

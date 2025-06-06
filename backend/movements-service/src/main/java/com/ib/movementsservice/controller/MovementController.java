@@ -1,5 +1,7 @@
 package com.ib.movementsservice.controller;
 
+import com.ib.movementsservice.dto.MovementRequest;
+import com.ib.movementsservice.dto.StockDTO;
 import com.ib.movementsservice.entity.Movement;
 import com.ib.movementsservice.response.Response;
 import com.ib.movementsservice.service.movement.MovementService;
@@ -58,21 +60,50 @@ public class MovementController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> createMovement(@RequestBody Movement movement, HttpServletRequest request){
-        String jwtToken = extractJwtToken(request);
+    public ResponseEntity<?> createMovement(@RequestBody MovementRequest movementRequest, HttpServletRequest request){
         try{
-            Response<Statuses.CreateMovementStatus,Movement> result = movementService.createMovement(movement,jwtToken);
+            Movement movement = movementRequest.getMovement();
+            if(movement.getMovementType() == null) return ResponseEntity.badRequest().body(Map.of("error","Must specify the movement type id"));
+            StockDTO stockDTO = movementRequest.getStockDTO();
+
+            String jwtToken = extractJwtToken(request);
+
+            Response<Statuses.CreateMovementStatus,Movement> result;
+            if(movement.getMovementType().getId() == 2){
+                 result = movementService.createMovement(movement,jwtToken);
+            }else{
+                result = movementService.createMovement(movement,stockDTO,jwtToken);
+            }
             return switch (result.status()){
                 case SUCCESS ->  ResponseEntity.ok(result.entity());
-                case BATCH_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Batch with code "+movement.getBatchCode()+" not found"));
-                case SAME_STORAGE -> ResponseEntity.badRequest().body(Map.of("error","Origin and target storages cant be the same"));
-                case USER_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","User not found"));
-                case ORIGIN_STORAGE_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Origin storage with id "+movement.getOriginStorageId()+" not found"));
-                case TARGET_STORAGE_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Target storage with id "+movement.getTargetStorageId()+" not found"));
-                case NEGATIVE_AMOUNT -> ResponseEntity.badRequest().body(Map.of("error","The amount of the movement must be higher than 0"));
+                case SAME_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Origin and target stocks cant be the same"));
+                case INVALID_STOCK_AMOUNT -> ResponseEntity.badRequest().body(Map.of("error","Movement stock amount must be higher than 0"));
+                case NOT_ENOUGH_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Origin stock is not enough "));
+                case TARGET_STOCK_NOT_FOUND -> ResponseEntity.badRequest().body(Map.of("error","Target stock not found"));
+                case ORIGIN_STOCK_NOT_FOUND -> ResponseEntity.badRequest().body(Map.of("error","Origin stock not found"));
+                case ERROR_UPDATING_STOCK -> ResponseEntity.status(HttpStatus.FAILED_DEPENDENCY).body(Map.of("error","Unable to update stock"));
             };
         }catch(Exception e){
             logger.error("Error creating the movement: {}", e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
+    }
+
+
+    @PutMapping("/reception/{movementId}")
+    public ResponseEntity<?> updateMovementReception(@PathVariable int movementId, @RequestBody boolean receptionStatus, HttpServletRequest request){
+        String jwtToken = extractJwtToken(request);
+        try{
+            Response<Statuses.MovementReceptionStatus,Movement> result = movementService.movementReception(movementId,receptionStatus,jwtToken);
+            return switch (result.status()){
+                case SUCCESS ->  ResponseEntity.ok(result.entity());
+                case MOVEMENT_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Movement to update reception not found"));
+                case TARGET_STOCK_NOT_FOUND -> ResponseEntity.badRequest().body(Map.of("error","Target stock not found"));
+                case ORIGIN_STOCK_NOT_FOUND -> ResponseEntity.badRequest().body(Map.of("error","Origin stock not found"));
+                case ERROR_UPDATING_STOCK -> ResponseEntity.status(HttpStatus.FAILED_DEPENDENCY).body(Map.of("error","Unable to update stock"));
+            };
+        }catch(Exception e){
+            logger.error("Error updating the movement reception status with id {}: {}",movementId, e.getMessage(),e);
             return ResponseEntity.status(500).body("Something went wrong");
         }
     }

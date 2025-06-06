@@ -21,12 +21,9 @@ public class Batch implements IEntity{
     @GeneratedValue(strategy =  GenerationType.IDENTITY)
     int id;
 
-    @NotNull
     @Column(name = "expiration_date")
     @JsonFormat(pattern = "dd-MM-yyyy", timezone = "America/Argentina/Buenos_Aires")
-    LocalDate expirationDate;
-
-    int amount;
+    LocalDate expirationDate = null;
 
     @NotNull
     @Size(min = 1,max = 45)
@@ -38,10 +35,10 @@ public class Batch implements IEntity{
     Product product;
 
 
-    @NotNull
     @Column(name = "arrival_date")
     @JsonFormat(pattern = "dd-MM-yyyy", timezone = "America/Argentina/Buenos_Aires")
-    LocalDate arrivalDate;
+    LocalDate arrivalDate = null;
 
+    boolean active = false;
 
 }
