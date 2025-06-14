@@ -24,25 +24,6 @@ export default function DeleteStock() {
 
     const { id, storageId, batchCode, availableStock, pendingStock } = stock;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultStock = await axios.get(`http://localhost:8080/api/stock/${idStock}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-
-                setStock(resultStock.data);
-
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Stock not found");
-                    navigate("/admin/stock");
-                }
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
-
     const verifyBackendStatus = async () => {
         try {
             await axios.get('http://localhost:8080/actuator/health');
@@ -60,6 +41,26 @@ export default function DeleteStock() {
         setApiOnline(false);
         return false;
     };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                const resultStock = await axios.get(`http://localhost:8080/api/stock/${idStock}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                setStock(resultStock.data);
+                } catch (error) {
+                    console.error("Error fetching the stock to delete:", error);
+                if (error.status === 404) {
+                    alert("Stock not found");
+                    navigate("/admin/stock");
+                }
+                }
+            }
+        };
+
+        run();
+    }, []);
 
     const onSubmit = async (e) => {
         e.preventDefault();
@@ -97,18 +98,18 @@ export default function DeleteStock() {
                 <div className="row mb-3">
                     <div className="col-md-6">
                         <label htmlFor="batchCodeTxt" className="form-label">Batch Code</label>
-                        <input type="text" className="form-control" id="batchCodeTxt" name='batchCode'required value={batchCode} disabled />
+                        <input type="text" className="form-control" id="batchCodeTxt" name='batchCode' required value={batchCode} disabled />
                     </div>
                     <div className="col-md-6">
                         <label htmlFor="availableStockTxt" className="form-label">Available Stock</label>
-                        <input type="text" className="form-control" id="availableStockTxt" name='availableStock'required value={availableStock} disabled />
+                        <input type="text" className="form-control" id="availableStockTxt" name='availableStock' required value={availableStock} disabled />
                     </div>
                 </div>
 
                 <div className="row mb-3">
                     <div className="col-md-3 mx-auto">
                         <label htmlFor="pendingStockTxt" className="form-label">Pending Stock</label>
-                        <input type="text" className="form-control" id="pendingStockTxt" name='pendingStock'required value={pendingStock} disabled />
+                        <input type="text" className="form-control" id="pendingStockTxt" name='pendingStock' required value={pendingStock} disabled />
                     </div>
                 </div>
                 {!apiOnline && (

@@ -8,19 +8,41 @@ export default function Batches() {
 
     const [batches, setBatches] = useState([]);
 
-    useEffect(() => {
-        const fetchData = async () => {
+    const verifyBackendStatus = async () => {
+        try {
+            await axios.get('http://localhost:8080/actuator/health');
             try {
-                const resultBatches = await axios.get("http://localhost:8080/api/batches/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-
-                setBatches(resultBatches.data);
+                await axios.get('http://localhost:8080/api/products/actuator/health');
+                console.log('backend OK');
+                setApiOnline(true);
+                return true;
             } catch (error) {
-                setApiOnline(false);
-                console.error("Error: ", error);
+                console.warn('Products service OFF');
+            }
+        } catch (error) {
+            console.warn('Api gateway OFF');
+        }
+        setApiOnline(false);
+        return false;
+    };
+
+
+
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultBatches = await axios.get("http://localhost:8080/api/batches/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    setBatches(resultBatches.data);
+                } catch (error) {
+                    console.error("Error fetching batches:", error);
+                }
             }
         };
 
-        fetchData();
+        run();
     }, []);
 
     const filteredBatches = batches;
@@ -70,8 +92,8 @@ export default function Batches() {
             <div style={{ margin: "30px" }}>
                 <h3>Batch list</h3>
             </div>
-            <div style={{ margin: "10px", display: 'flex',   justifyContent: "space-between"  }}>
-                <Link className='btn btn-success btn-m' to={"add"}>Add batch</Link>              
+            <div style={{ margin: "10px", display: 'flex', justifyContent: "space-between" }}>
+                <Link className='btn btn-success btn-m' to={"add"}>Add batch</Link>
                 <Link className='btn btn-primary btn-m' to={"/admin/products/menu"}>Go back to menu</Link>
             </div>
             <table className="table table-striped table-hover align-middle">

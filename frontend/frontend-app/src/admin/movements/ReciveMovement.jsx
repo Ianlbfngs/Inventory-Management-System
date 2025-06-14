@@ -29,29 +29,6 @@ export default function ReciveMovement() {
 
     const { id, originStockId, targetStockId, stockAmount, issueDate, receiptDate, movementType, createdByUser, status } = movement;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultMovement = await axios.get(`http://localhost:8080/api/movements/${idMovement}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                if (resultMovement.data.status !== 0) {
-                    alert("Movement already recived/cancelled");
-                    navigate("/admin/movements");
-                }
-                setMovement(resultMovement.data);
-
-
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Movement not found");
-                    navigate("/admin/movements");
-                }
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
-
     const verifyBackendStatus = async () => {
         try {
             await axios.get('http://localhost:8080/actuator/health');
@@ -69,6 +46,31 @@ export default function ReciveMovement() {
         setApiOnline(false);
         return false;
     };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultMovement = await axios.get(`http://localhost:8080/api/movements/${idMovement}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    if (resultMovement.data.status !== 0) {
+                        alert("Movement already recived/cancelled");
+                        navigate("/admin/movements");
+                    }
+                    setMovement(resultMovement.data);
+                } catch (error) {
+                    console.error("Error fetching the movement to recive:", error);
+
+                    if (error.status === 404) {
+                        alert("Movement not found");
+                        navigate("/admin/movements");
+                    }
+                }
+            }
+        };
+
+        run();
+    }, []);
 
     const onSubmit = async (e) => {
         e.preventDefault();

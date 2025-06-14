@@ -8,19 +8,39 @@ export default function Categories() {
 
     const [categories, setCategories] = useState([]);
 
-    useEffect(() => {
-        const fetchData = async () => {
+    const verifyBackendStatus = async () => {
+        try {
+            await axios.get('http://localhost:8080/actuator/health');
             try {
-                const resultCategories = await axios.get('http://localhost:8080/api/categories/all', { headers: { Authorization: 'Bearer ' + localStorage.getItem('jwtToken') } });
-
-                setCategories(resultCategories.data);
+                await axios.get('http://localhost:8080/api/products/actuator/health');
+                console.log('backend OK');
+                setApiOnline(true);
+                return true;
             } catch (error) {
-                setApiOnline(false);
-                console.error("Error: ", error);
+                console.warn('Products service OFF');
+            }
+        } catch (error) {
+            console.warn('Api gateway OFF');
+        }
+        setApiOnline(false);
+        return false;
+    };
+
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultCategories = await axios.get('http://localhost:8080/api/categories/all', { headers: { Authorization: 'Bearer ' + localStorage.getItem('jwtToken') } });
+                    setCategories(resultCategories.data);
+                } catch (error) {
+                    console.error("Error fetching categories:", error);
+                }
             }
         };
 
-        fetchData();
+        run();
     }, []);
 
     const filteredCategories = categories;
@@ -68,8 +88,8 @@ export default function Categories() {
             <div style={{ margin: "30px" }}>
                 <h3>Categories list</h3>
             </div>
-            <div style={{ margin: "10px", display: 'flex',   justifyContent: "space-between"  }}>
-                <Link className='btn btn-success btn-m' to={"add"}>Add category</Link>              
+            <div style={{ margin: "10px", display: 'flex', justifyContent: "space-between" }}>
+                <Link className='btn btn-success btn-m' to={"add"}>Add category</Link>
                 <Link className='btn btn-primary btn-m' to={"/admin/products/menu"}>Go back to menu</Link>
             </div>
             <table className="table table-striped table-hover align-middle">

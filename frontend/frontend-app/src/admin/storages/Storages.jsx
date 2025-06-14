@@ -8,19 +8,38 @@ export default function Storages() {
 
     const [storages, setStorages] = useState([]);
 
-    useEffect(() => {
-        const fetchData = async () => {
+    const verifyBackendStatus = async () => {
+        try {
+            await axios.get('http://localhost:8080/actuator/health');
             try {
-                const resultStorages = await axios.get("http://localhost:8080/api/storage/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-
-                setStorages(resultStorages.data);
+                await axios.get('http://localhost:8080/api/storage/actuator/health');
+                console.log('backend OK');
+                setApiOnline(true);
+                return true;
             } catch (error) {
-                setApiOnline(false);
-                console.error("Error: ", error);
+                console.warn('Storage service OFF');
+            }
+        } catch (error) {
+            console.warn('Api gateway OFF');
+        }
+        setApiOnline(false);
+        return false;
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultStorages = await axios.get("http://localhost:8080/api/storage/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    setStorages(resultStorages.data);
+                } catch (error) {
+                    console.error("Error fetching storages:", error);
+                }
             }
         };
 
-        fetchData();
+        run();
     }, []);
 
     const filteredStorages = storages;
@@ -70,8 +89,8 @@ export default function Storages() {
             <div style={{ margin: "30px" }}>
                 <h3>Storage list</h3>
             </div>
-            <div style={{ margin: "10px", display: 'flex',   justifyContent: "space-between"  }}>
-                <Link className='btn btn-success btn-m' to={"add"}>Add storage</Link>              
+            <div style={{ margin: "10px", display: 'flex', justifyContent: "space-between" }}>
+                <Link className='btn btn-success btn-m' to={"add"}>Add storage</Link>
                 <Link className='btn btn-primary btn-m' to={"/admin/menu"}>Go back to menu</Link>
             </div>
             <table className="table table-striped table-hover align-middle">

@@ -8,19 +8,38 @@ export default function Products() {
 
     const [products, setProducts] = useState([]);
 
-    useEffect(() => {
-        const fetchData = async () => {
+    const verifyBackendStatus = async () => {
+        try {
+            await axios.get('http://localhost:8080/actuator/health');
             try {
-                const resultProducts = await axios.get("http://localhost:8080/api/products/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-
-                setProducts(resultProducts.data);
+                await axios.get('http://localhost:8080/api/products/actuator/health');
+                console.log('backend OK');
+                setApiOnline(true);
+                return true;
             } catch (error) {
-                setApiOnline(false);
-                console.error("Error: ", error);
+                console.warn('Products service OFF');
+            }
+        } catch (error) {
+            console.warn('Api gateway OFF');
+        }
+        setApiOnline(false);
+        return false;
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                const resultProducts = await axios.get("http://localhost:8080/api/products/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                setProducts(resultProducts.data);
+                } catch (error) {
+                    console.error("Error fetching products:", error);
+                }
             }
         };
 
-        fetchData();
+        run();
     }, []);
 
     const filteredProducts = products;

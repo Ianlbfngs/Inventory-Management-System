@@ -31,6 +31,47 @@ export default function AddMovement() {
     const { storageId, batchCode } = newStock;
     const { originStockId, targetStockId, stockAmount } = newMovement;
 
+    const verifyBackendStatus = async () => {
+        try {
+            await axios.get('http://localhost:8080/actuator/health');
+            try {
+                await axios.get('http://localhost:8080/api/movements/actuator/health');
+                try {
+                    await axios.get('http://localhost:8080/api/stock/actuator/health');
+                    console.log('backend OK');
+                    setApiOnline(true);
+                    return true;
+
+                } catch (error) {
+                    console.warn('Stock service OFF');
+                }
+
+            } catch (error) {
+                console.warn('Movements service OFF');
+            }
+        } catch (error) {
+            console.warn('Api gateway OFF');
+        }
+        setApiOnline(false);
+        return false;
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultStock = await axios.get("http://localhost:8080/api/stock/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    setEveryStock(resultStock.data);
+                } catch (error) {
+                    console.error("Error fetching every stock:", error);
+                }
+            }
+        };
+
+        run();
+    }, []);
+
     const onInputChangeMovement = (e) => {
         const { name, value } = e.target;
         setMovement((prev) => ({
@@ -47,36 +88,9 @@ export default function AddMovement() {
         }));
     };
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultStock = await axios.get("http://localhost:8080/api/stock/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setEveryStock(resultStock.data);
-            } catch (error) {
-                setApiOnline(false);
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
 
-    const verifyBackendStatus = async () => {
-        try {
-            await axios.get('http://localhost:8080/actuator/health');
-            try {
-                await axios.get('http://localhost:8080/api/movements/actuator/health');
-                console.log('backend OK');
-                setApiOnline(true);
-                return true;
-            } catch (error) {
-                console.warn('Movements service OFF');
-            }
-        } catch (error) {
-            console.warn('Api gateway OFF');
-        }
-        setApiOnline(false);
-        return false;
-    };
+
+
 
     const buildRequestBody = () => {
         const baseStock = {
@@ -175,7 +189,7 @@ export default function AddMovement() {
                             <button className="btn btn-success w-50" onClick={() => setActionType(4)}>STOCK TO STOCK</button>
                         </div>
                         <div className="col-12">
-                            <Link  className="btn btn-primary w-50" to="/admin/movements" >Go back</Link>
+                            <Link className="btn btn-primary w-50" to="/admin/movements" >Go back</Link>
                         </div>
                     </div>
                 ) : ("")

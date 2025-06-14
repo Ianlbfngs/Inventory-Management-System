@@ -20,25 +20,6 @@ export default function DeleteCategory() {
 
     const { id, description } = category;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultCategory = await axios.get(`http://localhost:8080/api/categories/${idCategory}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setCategory(resultCategory.data);
-
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Category not found");
-                    navigate("/admin/items/categories");
-                }
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
-
-
     const verifyBackendStatus = async () => {
         try {
             await axios.get('http://localhost:8080/actuator/health');
@@ -56,6 +37,29 @@ export default function DeleteCategory() {
         setApiOnline(false);
         return false;
     };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultCategory = await axios.get(`http://localhost:8080/api/categories/${idCategory}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    setCategory(resultCategory.data);
+
+                } catch (error) {
+                    console.error("Error fetching the category to delete:", error);
+
+                    if (error.status === 404) {
+                        alert("Category not found");
+                        navigate("/admin/items/categories");
+                    }
+                }
+            }
+        };
+
+        run();
+    }, []);
+
 
     const onSubmit = async (e) => {
         e.preventDefault();

@@ -1,6 +1,5 @@
 package com.ib.userservice.service;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -14,8 +13,7 @@ import java.util.Map;
 
 @Service
 public class JwtService {
-    Dotenv dotenv = Dotenv.load();
-    String secretKey = dotenv.get("SECRET_KEY_JWT");
+    String secretKey = "3BzLKVccNFLySRXXBkKpkPdP4wSCSLuk4PBEHAfvjO/JVZuJW6THa4t/hhN1or4m7DOETdStb60tx3xJlrY0iw==";
 
     public String generateToken(String username){
         Map<String, Object> claims = new HashMap<>();

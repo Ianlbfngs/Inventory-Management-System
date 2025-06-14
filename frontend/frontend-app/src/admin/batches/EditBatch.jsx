@@ -21,6 +21,8 @@ export default function EditBatch() {
         active: true
     });
 
+    const { id, expirationDate, batchCode, product } = batch;
+
     const verifyBackendStatus = async () => {
         try {
             await axios.get('http://localhost:8080/actuator/health');
@@ -39,7 +41,6 @@ export default function EditBatch() {
         return false;
     };
 
-    const { id, expirationDate, batchCode, product } = batch;
 
     function formatDateToDDMMYYYY(dateString) {
         if (!dateString) return "";
@@ -59,20 +60,21 @@ export default function EditBatch() {
         const fetchData = async () => {
             try {
                 const resultProducts = await axios.get("http://localhost:8080/api/products/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                const resultBatch = await axios.get(`http://localhost:8080/api/batches/id/${idBatch}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                try {
+                    const resultBatch = await axios.get(`http://localhost:8080/api/batches/id/${idBatch}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    resultBatch.data.expirationDate = formatDateToYYYYMMDD(resultBatch.data.expirationDate);
 
-                resultBatch.data.expirationDate = formatDateToYYYYMMDD(resultBatch.data.expirationDate);
-
-                setProducts(resultProducts.data);
-                setBatch(resultBatch.data);
-
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Batch not found");
-                    navigate("/admin/items/batches");
+                    setProducts(resultProducts.data);
+                    setBatch(resultBatch.data);
+                } catch (error) {
+                    console.error("Error fetching the batch to edit:", error);
+                    if (error.status === 404) {
+                        alert("Batch not found");
+                        navigate("/admin/items/batches");
+                    }
                 }
-                console.error("Error:", error);
+            } catch (error) {
+                console.error("Error fetching products:", error);
             }
         };
         fetchData();

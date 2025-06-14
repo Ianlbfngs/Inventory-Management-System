@@ -19,25 +19,7 @@ export default function DeleteProduct() {
         sku: "",
     });
 
-
     const { id, name, weight, sku, category, active } = product;
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultProduct = await axios.get(`http://localhost:8080/api/products/${idProduct}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setProduct(resultProduct.data);
-
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Product not found");
-                    navigate("/admin/items/products");
-                }
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
 
     const verifyBackendStatus = async () => {
         try {
@@ -56,6 +38,26 @@ export default function DeleteProduct() {
         setApiOnline(false);
         return false;
     };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultProduct = await axios.get(`http://localhost:8080/api/products/${idProduct}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    setProduct(resultProduct.data);
+                } catch (error) {
+                    console.error("Error fetching the product to delete:", error);
+                    if (error.status === 404) {
+                        alert("Product not found");
+                        navigate("/admin/items/products");
+                    }
+                }
+            }
+        };
+
+        run();
+    }, []);
 
     const onSubmit = async (e) => {
         e.preventDefault();

@@ -28,16 +28,19 @@ export default function AddBatch() {
     };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultProducts = await axios.get("http://localhost:8080/api/products/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setProducts(resultProducts.data);
-            } catch (error) {
-                setApiOnline(false);
-                console.error("Error:", error);
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultProducts = await axios.get("http://localhost:8080/api/products/all", {headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") }});
+                    setProducts(resultProducts.data);
+                } catch (error) {
+                    console.error("Error fetching products:", error);
+                }
             }
         };
-        fetchData();
+
+        run();
     }, []);
 
 

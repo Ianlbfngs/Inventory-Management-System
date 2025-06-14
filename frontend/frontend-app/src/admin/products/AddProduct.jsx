@@ -8,47 +8,6 @@ export default function AddProduct() {
 
     const [categories, setCategories] = useState([]);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultCategories = await axios.get("http://localhost:8080/api/categories/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setCategories(resultCategories.data);
-            } catch (error) {
-                setApiOnline(false);
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
-
-
-
-    const [product, setProduct] = useState({
-        id: 0,
-        name: "",
-        category: { id: 0 },
-        weight: 0,
-        sku: "",
-        active: false
-    });
-
-    const { name, weight, sku, category, active } = product;
-
-    const onInputChangeProduct = (e) => {
-        const { name, value } = e.target;
-        if (name === "Category") {
-            setProduct(prev => ({
-                ...prev,
-                category: { ...prev.category, id: parseInt(value) }
-            }));
-        } else {
-            setProduct(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
-    };
-
     const verifyBackendStatus = async () => {
         try {
             await axios.get('http://localhost:8080/actuator/health');
@@ -66,6 +25,52 @@ export default function AddProduct() {
         setApiOnline(false);
         return false;
     };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                const resultCategories = await axios.get("http://localhost:8080/api/categories/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                setCategories(resultCategories.data);
+                } catch (error) {
+                    console.error("Error fetching categories:", error);
+                }
+            }
+        };
+
+        run();
+    }, []);
+
+    const [product, setProduct] = useState({
+        id: 0,
+        name: "",
+        category: { id: 0 },
+        weight: 0,
+        sku: "",
+        active: false
+    });
+
+    const { name, weight, sku, category, active } = product;
+
+
+
+    const onInputChangeProduct = (e) => {
+        const { name, value } = e.target;
+        if (name === "Category") {
+            setProduct(prev => ({
+                ...prev,
+                category: { ...prev.category, id: parseInt(value) }
+            }));
+        } else {
+            setProduct(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
+    };
+
+
 
     const onSubmit = async (e) => {
         e.preventDefault();
@@ -91,7 +96,7 @@ export default function AddProduct() {
 
     return (
         <div className='container'>
-            <div  style={{ margin: "30px" }}>
+            <div style={{ margin: "30px" }}>
                 <h3>Add product</h3>
             </div>
 

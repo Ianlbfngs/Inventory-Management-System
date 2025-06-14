@@ -8,18 +8,46 @@ export default function Movements() {
 
     const [movements, setMovements] = useState([]);
 
-    useEffect(() => {
-        const fetchData = async () => {
+    const verifyBackendStatus = async () => {
+        try {
+            await axios.get('http://localhost:8080/actuator/health');
             try {
-                const resultMovements = await axios.get("http://localhost:8080/api/movements/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setMovements(resultMovements.data);
+                await axios.get('http://localhost:8080/api/movements/actuator/health');
+                try {
+                    await axios.get('http://localhost:8080/api/stock/actuator/health');
+                    console.log('backend OK');
+                    setApiOnline(true);
+                    return true;
+
+                } catch (error) {
+                    console.warn('Stock service OFF');
+
+                }
+
             } catch (error) {
-                setApiOnline(false);
-                console.error("Error: ", error);
+                console.warn('Movements service OFF');
+            }
+        } catch (error) {
+            console.warn('Api gateway OFF');
+        }
+        setApiOnline(false);
+        return false;
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultMovements = await axios.get("http://localhost:8080/api/movements/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    setMovements(resultMovements.data);
+                } catch (error) {
+                    console.error("Error fetching movements:", error);
+                }
             }
         };
 
-        fetchData();
+        run();
     }, []);
 
     const filteredMovements = movements;
@@ -75,8 +103,8 @@ export default function Movements() {
             <div style={{ margin: "30px" }}>
                 <h3>Movements list</h3>
             </div>
-            <div style={{ margin: "10px", display: 'flex',   justifyContent: "space-between"  }}>
-                <Link className='btn btn-success btn-m' to={"add"}>Make a movement</Link>              
+            <div style={{ margin: "10px", display: 'flex', justifyContent: "space-between" }}>
+                <Link className='btn btn-success btn-m' to={"add"}>Make a movement</Link>
                 <Link className='btn btn-primary btn-m' to={"/admin/menu"}>Go back to menu</Link>
             </div>
             <table className="table table-striped table-hover align-middle">

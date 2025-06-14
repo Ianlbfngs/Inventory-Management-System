@@ -22,34 +22,6 @@ export default function EditStorage() {
 
     const { id, name, capacity, location } = storage;
 
-    const onInputChangeStorage = (e) => {
-        const { name, value } = e.target;
-
-        setStorage(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultStorage = await axios.get(`http://localhost:8080/api/storage/${idStorage}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setStorage(resultStorage.data);
-
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Storage not found");
-                    navigate("/admin/storages");
-                }
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
-
-
     const verifyBackendStatus = async () => {
         try {
             await axios.get('http://localhost:8080/actuator/health');
@@ -67,6 +39,36 @@ export default function EditStorage() {
         setApiOnline(false);
         return false;
     };
+
+
+    const onInputChangeStorage = (e) => {
+        const { name, value } = e.target;
+
+        setStorage(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultStorage = await axios.get(`http://localhost:8080/api/storage/${idStorage}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    setStorage(resultStorage.data);
+                } catch (error) {
+                    console.error("Error fetching the storage to edit:", error);
+                    if (error.status === 404) {
+                        alert("Storage not found");
+                        navigate("/admin/storages");
+                    }
+                }
+            }
+        };
+
+        run();
+    }, []);
 
     const onSubmit = async (e) => {
         e.preventDefault();

@@ -13,15 +13,6 @@ export default function AddCategory() {
 
     const { description } = category;
 
-    const onInputChangeCategory = (e) => {
-        const { name, value } = e.target;
-
-        setCategory(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
     const verifyBackendStatus = async () => {
         try {
             await axios.get('http://localhost:8080/actuator/health');
@@ -39,6 +30,17 @@ export default function AddCategory() {
         setApiOnline(false);
         return false;
     };
+
+    const onInputChangeCategory = (e) => {
+        const { name, value } = e.target;
+
+        setCategory(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+
 
     const onSubmit = async (e) => {
         e.preventDefault();

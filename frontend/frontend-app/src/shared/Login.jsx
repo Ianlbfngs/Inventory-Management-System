@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 export default function Login() {
 
     const navigate = useNavigate();
+    localStorage.removeItem("jwtToken");
 
     const [apiOnline, setApiOnline] = useState(true);
 

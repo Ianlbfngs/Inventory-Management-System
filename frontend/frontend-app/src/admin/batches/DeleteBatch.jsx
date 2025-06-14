@@ -47,24 +47,27 @@ export default function DeleteBatch() {
     }
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultBatch = await axios.get(`http://localhost:8080/api/batches/id/${idBatch}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                resultBatch.data.expirationDate = formatDateToYYYYMMDD(resultBatch.data.expirationDate);
-                setBatch(resultBatch.data);
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultBatch = await axios.get(`http://localhost:8080/api/batches/id/${idBatch}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    resultBatch.data.expirationDate = formatDateToYYYYMMDD(resultBatch.data.expirationDate);
+                    setBatch(resultBatch.data);
 
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Batch not found");
-                    navigate("/admin/items/batches");
+                } catch (error) {
+                    console.error("Error fetching the batch to delete:", error);
+
+                    if (error.status === 404) {
+                        alert("Batch not found");
+                        navigate("/admin/items/batches");
+                    }
                 }
-                console.error("Error:", error);
             }
         };
-        fetchData();
-    }, []);
 
+        run();
+    }, []);
 
     const onSubmit = async (e) => {
         e.preventDefault();

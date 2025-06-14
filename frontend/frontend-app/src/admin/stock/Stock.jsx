@@ -9,23 +9,73 @@ export default function Stock() {
     const [stock, setStock] = useState([]);
 
     const [storages, setStorages] = useState([]);
-    const [products, setProducts] = useState([]);
+
+    const verifyBackendStatus = async () => {
+        try {
+            await axios.get('http://localhost:8080/actuator/health');
+            try {
+                await axios.get('http://localhost:8080/api/stock/actuator/health');
+                try {
+                    await axios.get('http://localhost:8080/api/storage/actuator/health');
+                    console.log('backend OK');
+                    setApiOnline(true);
+                    return true;
+                } catch (error) {
+                    console.warn('Storage service OFF');
+
+                }
+
+            } catch (error) {
+                console.warn('Stock service OFF');
+            }
+        } catch (error) {
+            console.warn('Api gateway OFF');
+        }
+        setApiOnline(false);
+        return false;
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            const backendOK = await verifyBackendStatus();
+            if (backendOK) {
+                try {
+                    const resultStock = await axios.get("http://localhost:8080/api/stock/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                    try {
+                        const resultStorages = await axios.get("http://localhost:8080/api/storage/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                        setStock(resultStock.data);
+
+                        setStorages(resultStorages.data);
+
+                    } catch (error) {
+                        console.error("Error fetching storages:", error);
+
+                    }
+                } catch (error) {
+                    console.error("Error fetching every stock:",error);
+                }
+            }
+        };
+
+        run();
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const resultStock = await axios.get("http://localhost:8080/api/stock/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setStock(resultStock.data);
-                const resultStorage = await axios.get("http://localhost:8080/api/storage/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                setStorages(resultStorage.data);
+                try {
+                    setStorages(resultStorage.data);
+                } catch (error) {
+                    console.error("Error fetching storages", error);
+                }
             } catch (error) {
-                setApiOnline(false);
-                console.error("Error: ", error);
+                console.error("Error fetching every stock:", error);
             }
         };
-
         fetchData();
     }, []);
+
+
 
     const filteredStock = stock;
 
@@ -51,7 +101,7 @@ export default function Stock() {
 
                 <tr key={index}>
                     <th scope='row'>{stockAux.id}</th>
-                    <td>{storageMap.get(stockAux.storageId) +" | "+stockAux.storageId}</td>
+                    <td>{storageMap.get(stockAux.storageId) + " | " + stockAux.storageId}</td>
                     <td>{stockAux.batchCode}</td>
                     <td>{stockAux.availableStock}</td>
                     <td>{stockAux.pendingStock}</td>
@@ -77,7 +127,7 @@ export default function Stock() {
             <div style={{ margin: "30px" }}>
                 <h3>Stock list</h3>
             </div>
-            <div style={{ margin: "10px", textAlign: "right"  }}>
+            <div style={{ margin: "10px", textAlign: "right" }}>
                 <Link className='btn btn-primary btn-m' to={"/admin/menu"}>Go back to menu</Link>
             </div>
             <table className="table table-striped table-hover align-middle">

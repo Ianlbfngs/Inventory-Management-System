@@ -23,42 +23,6 @@ export default function EditProduct() {
 
 
     const { id, name, weight, sku, category, active } = product;
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resultCategories = await axios.get("http://localhost:8080/api/categories/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-                const resultProduct = await axios.get(`http://localhost:8080/api/products/${idProduct}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
-
-                setCategories(resultCategories.data);
-                setProduct(resultProduct.data);
-
-            } catch (error) {
-                setApiOnline(false);
-                if (error.status === 404) {
-                    alert("Product not found");
-                    navigate("/admin/items/products");
-                }
-                console.error("Error:", error);
-            }
-        };
-        fetchData();
-    }, []);
-
-
-    const onInputChangeProduct = (e) => {
-        const { name, value } = e.target;
-        if (name === "Category") {
-            setProduct(prev => ({
-                ...prev,
-                category: { ...prev.category, id: parseInt(value) }
-            }));
-        } else {
-            setProduct(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
-    };
 
     const verifyBackendStatus = async () => {
         try {
@@ -77,6 +41,46 @@ export default function EditProduct() {
         setApiOnline(false);
         return false;
     };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const resultCategories = await axios.get("http://localhost:8080/api/categories/all", { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+                try {
+                    const resultProduct = await axios.get(`http://localhost:8080/api/products/${idProduct}`, { headers: { Authorization: 'Bearer ' + localStorage.getItem("jwtToken") } });
+
+                    setCategories(resultCategories.data);
+                    setProduct(resultProduct.data);
+                } catch (error) {
+                    console.error("Error fetching the product to edit:", error);
+                    if (error.status === 404) {
+                        alert("Product not found");
+                        navigate("/admin/items/products");
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const onInputChangeProduct = (e) => {
+        const { name, value } = e.target;
+        if (name === "Category") {
+            setProduct(prev => ({
+                ...prev,
+                category: { ...prev.category, id: parseInt(value) }
+            }));
+        } else {
+            setProduct(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
+    };
+
+
 
     const onSubmit = async (e) => {
         e.preventDefault();

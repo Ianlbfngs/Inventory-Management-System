@@ -1,0 +1,158 @@
+services:
+
+  mysql-auth:
+    image: mysql:8.0
+    container_name: mysql-auth
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auth_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_auth_data:/var/lib/mysql
+      - ./db-scripts/auth_db.sql:/docker-entrypoint-initdb.d/auth_db.sql
+    networks:
+      - backend
+
+  mysql-movements:
+    image: mysql:8.0
+    container_name: mysql-movements
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: movements_db
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_movements_data:/var/lib/mysql
+      - ./db-scripts/movements_db.sql:/docker-entrypoint-initdb.d/movements_db.sql
+    networks:
+      - backend
+
+  mysql-product:
+    image: mysql:8.0
+    container_name: mysql-product
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: product_db
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_product_data:/var/lib/mysql
+      - ./db-scripts/product_db.sql:/docker-entrypoint-initdb.d/product_db.sql
+    networks:
+      - backend
+
+  mysql-stock:
+    image: mysql:8.0
+    container_name: mysql-stock
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: stock_db
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_stock_data:/var/lib/mysql
+      - ./db-scripts/stock_db.sql:/docker-entrypoint-initdb.d/stock_db.sql
+    networks:
+      - backend
+
+  mysql-storage:
+    image: mysql:8.0
+    container_name: mysql-storage
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: storage_db
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql_storage_data:/var/lib/mysql
+      - ./db-scripts/storage_db.sql:/docker-entrypoint-initdb.d/storage_db.sql
+    networks:
+      - backend
+
+  eureka-server:
+    build: ./backend/eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - backend
+
+  api-gateway:
+    build: ./backend/api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka-server
+    networks:
+      - backend
+
+  user-service:
+    build: ./backend/user-service
+    container_name: user-service
+    ports:
+      - "8087:8087"
+    depends_on:
+      - mysql-auth
+    networks:
+      - backend
+
+  storage-service:
+    build: ./backend/storage-service
+    container_name: storage-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql-storage
+    networks:
+      - backend
+
+  stock-service:
+    build: ./backend/stock-service
+    container_name: stock-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - mysql-stock
+    networks:
+      - backend
+
+  product-service:
+    build: ./backend/product-service
+    container_name: product-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysql-product
+    networks:
+      - backend
+
+  movements-service:
+    build: ./backend/movements-service
+    container_name: movements-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      - mysql-movements
+    networks:
+      - backend
+
+  inventory-system:
+    build: ./frontend/frontend-app
+    container_name: inventory-system-app
+    ports:
+      - "3000:80"
+    networks:
+      - backend
+    
+networks:
+  backend:
+
+volumes:
+  mysql_auth_data:
+  mysql_stock_data:
+  mysql_product_data:
+  mysql_movements_data:
+  mysql_storage_data:
+
