@@ -33,12 +33,12 @@ public class StockService implements IStockService{
 
     @Override
     public List<Stock> obtainAll() {
-        return stockRepository.findAll();
+        return stockRepository.findAllByActive(true);
     }
 
     @Override
     public Optional<Stock> obtainSpecificStock(int id) {
-        return stockRepository.findById(id);
+        return stockRepository.findByIdAndActive(id,true);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class StockService implements IStockService{
             ResponseEntity<Void> responseBatch = restTemplate.exchange("http://localhost:8080/api/batches/code/" + stock.getBatchCode(), HttpMethod.GET,entity, Void.class);
             try{
                 ResponseEntity<Void> responseStorage = restTemplate.exchange("http://localhost:8080/api/storage/" + stock.getStorageId(), HttpMethod.GET,entity, Void.class);
-
+                stock.setActive(true);
                 return new Response<>(Statuses.CreateStockStatus.SUCCESS,stockRepository.save(stock));
             }catch(HttpClientErrorException.NotFound e){
 
@@ -75,7 +75,7 @@ public class StockService implements IStockService{
     public Response<Statuses.UpdateStockStatus> updateStock(int id, Stock stock){
         if(stock.getAvailableStock() == null && stock.getPendingStock()==null) return new Response<>(Statuses.UpdateStockStatus.NOTHING_TO_UPDATE,null);
 
-        Optional<Stock> originalStock = stockRepository.getStockById(id);
+        Optional<Stock> originalStock = stockRepository.getStockByIdAndActive(id,true);
         if(originalStock.isEmpty()) return new Response<>(Statuses.UpdateStockStatus.STOCK_NOT_FOUND,null);
 
         if(stock.getAvailableStock() == null){
@@ -96,27 +96,26 @@ public class StockService implements IStockService{
         return new Response<>(Statuses.UpdateStockStatus.SUCCESS,stockRepository.save(originalStock.get()));
     }
 
-    /*
     @Override
-    public Response<Statuses.UpdateStockStatus> updateStock(int storageId,String batchCode, int stockAmountRequested){
-        Optional<Stock> stock = stockRepository.getStockByStorageIdAndBatchCode(storageId,batchCode);
-        if(stock.isEmpty()) return new Response<>(Statuses.UpdateStockStatus.STOCK_NOT_FOUND,null);
-
-        if(stock.get().getAvailableStock() - stockAmountRequested <0) return new Response<>(Statuses.UpdateStockStatus.NOT_ENOUGH_STOCK,null);
-
-        stock.get().setAvailableStock(stock.get().getAvailableStock()-stockAmountRequested);
-        stock.get().setPendingStock(stockAmountRequested);
-
-        return new Response<>(Statuses.UpdateStockStatus.SUCCESS,stockRepository.save(stock.get()));
+    public Response<Statuses.SoftDeleteStockStatus> softDeleteStock(int id) {
+        Optional<Stock> stockToDelete = stockRepository.findById(id);
+        if(stockToDelete.isEmpty()) return new Response<>(Statuses.SoftDeleteStockStatus.NOT_FOUND,null);
+        if(!stockToDelete.get().isActive()) return new Response<>(Statuses.SoftDeleteStockStatus.ALREADY_SOFT_DELETED,null);
+        if(stockToDelete.get().getAvailableStock() >0 || stockToDelete.get().getPendingStock() >0) return new Response<>(Statuses.SoftDeleteStockStatus.STOCK_NOT_EMPTY,null);
+        stockToDelete.get().setActive(false);
+        return new Response<>(Statuses.SoftDeleteStockStatus.SUCCESS,stockRepository.save(stockToDelete.get()));
     }
-*/
 
     @Override
     public Response<Statuses.HardDeleteStockStatus> hardDeleteStock(int id) {
-        if(!stockRepository.existsStockById(id)) return new Response<>(Statuses.HardDeleteStockStatus.NOT_FOUND,null);
+        Optional<Stock> stockToDelete = stockRepository.findById(id);
+        if(stockToDelete.isEmpty()) return new Response<>(Statuses.HardDeleteStockStatus.NOT_FOUND,null);
+        if(stockToDelete.get().getAvailableStock() >0 || stockToDelete.get().getPendingStock() >0) return new Response<>(Statuses.HardDeleteStockStatus.STOCK_NOT_EMPTY,null);
         stockRepository.deleteById(id);
         return new Response<>(Statuses.HardDeleteStockStatus.SUCCESS,null);
     }
+
+
 
 
 }

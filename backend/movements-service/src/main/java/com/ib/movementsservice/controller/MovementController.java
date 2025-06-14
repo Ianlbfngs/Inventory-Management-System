@@ -63,14 +63,19 @@ public class MovementController {
     public ResponseEntity<?> createMovement(@RequestBody MovementRequest movementRequest, HttpServletRequest request){
         try{
             Movement movement = movementRequest.getMovement();
-            if(movement.getMovementType() == null) return ResponseEntity.badRequest().body(Map.of("error","Must specify the movement type id"));
             StockDTO stockDTO = movementRequest.getStockDTO();
 
             String jwtToken = extractJwtToken(request);
 
             Response<Statuses.CreateMovementStatus,Movement> result;
+
+            //function that selects the movement type based on the origin and target ids
+
+            movement.getMovementType().setId(movementService.movementTypeSelector(movement.getOriginStockId(),  movement.getTargetStockId()));
+
+
             if(movement.getMovementType().getId() == 2){
-                 result = movementService.createMovement(movement,jwtToken);
+                result = movementService.createMovement(movement,jwtToken);
             }else{
                 result = movementService.createMovement(movement,stockDTO,jwtToken);
             }
@@ -82,6 +87,7 @@ public class MovementController {
                 case TARGET_STOCK_NOT_FOUND -> ResponseEntity.badRequest().body(Map.of("error","Target stock not found"));
                 case ORIGIN_STOCK_NOT_FOUND -> ResponseEntity.badRequest().body(Map.of("error","Origin stock not found"));
                 case ERROR_UPDATING_STOCK -> ResponseEntity.status(HttpStatus.FAILED_DEPENDENCY).body(Map.of("error","Unable to update stock"));
+                case ORIGIN_AND_TARGET_DIFFERENT_BATCH -> ResponseEntity.badRequest().body(Map.of("error","Origin and target stock must be of the same batch"));
             };
         }catch(Exception e){
             logger.error("Error creating the movement: {}", e.getMessage(),e);

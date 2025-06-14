@@ -17,6 +17,10 @@ public class Storage {
     @GeneratedValue(strategy =  GenerationType.IDENTITY)
     int id;
 
+    @NotNull
+    @Size(min = 1,max = 200)
+    String name;
+
     double capacity;
 
     @NotNull

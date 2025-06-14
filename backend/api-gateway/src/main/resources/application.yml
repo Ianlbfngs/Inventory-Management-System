@@ -1,6 +1,10 @@
 server:
   port: 8080
-
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
 spring:
   application:
     name: api-gateway
@@ -41,18 +45,6 @@ spring:
             - Path=/api/movements/**
           filters:
             - RewritePath=/api/movements/actuator/(?<segment>.*), /actuator/${segment}
-        - id: headquarters-service
-          uri: lb://headquarters-service
-          predicates:
-            - Path=/api/headquarters/**
-          filters:
-            - RewritePath=/api/headquarters/actuator/(?<segment>.*), /actuator/${segment}
-        - id: report-service
-          uri: lb://report-service
-          predicates:
-            - Path=/api/report/**
-          filters:
-            - RewritePath=/api/report/actuator/(?<segment>.*), /actuator/${segment}
       default-filters:
         - AddRequestHeader=X-Gateway-Auth, gateway-secret
 

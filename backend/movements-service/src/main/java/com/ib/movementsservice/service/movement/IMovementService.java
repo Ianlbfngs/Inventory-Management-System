@@ -3,6 +3,7 @@ package com.ib.movementsservice.service.movement;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ib.movementsservice.dto.StockDTO;
 import com.ib.movementsservice.entity.Movement;
+import com.ib.movementsservice.entity.MovementType;
 import com.ib.movementsservice.response.Response;
 import com.ib.movementsservice.response.Statuses;
 
@@ -21,4 +22,5 @@ public interface IMovementService {
 
     Response<Statuses.MovementReceptionStatus, Movement> movementReception(int movementId, boolean receptionStatus, String jwtToken);
 
+    int movementTypeSelector(int originStockId, int targetStockId);
 }

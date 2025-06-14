@@ -34,11 +34,6 @@ public class Batch implements IEntity{
     @JoinColumn(name ="product_id",nullable = false)
     Product product;
 
-
-    @Column(name = "arrival_date")
-    @JsonFormat(pattern = "dd-MM-yyyy", timezone = "America/Argentina/Buenos_Aires")
-    LocalDate arrivalDate = null;
-
     boolean active = false;
 
 }

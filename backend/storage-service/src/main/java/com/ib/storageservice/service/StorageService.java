@@ -34,6 +34,7 @@ public class StorageService implements IStorageService {
     @Override
     public Response<Statuses.CreateStorageStatus> createStorage(Storage storage) {
         if(storage.getCapacity()<=0) return new Response<>(Statuses.CreateStorageStatus.NEGATIVE_CAPACITY,null);
+        if(storageRepository.existsStorageByName(storage.getName())) return new Response<>(Statuses.CreateStorageStatus.NAME_IN_USE,null);
         storage.setActive(true);
         return new Response<>(Statuses.CreateStorageStatus.SUCCESS,storageRepository.save(storage));
     }
@@ -45,6 +46,7 @@ public class StorageService implements IStorageService {
         Optional<Storage> originalStorage = storageRepository.findById(storage.getId());
         if(originalStorage.isEmpty()) return new Response<>(Statuses.UpdateStorageStatus.NOT_FOUND,null);
         if(!originalStorage.get().isActive()) return new Response<>(Statuses.UpdateStorageStatus.SOFT_DELETED,null);
+        if(!originalStorage.get().getName().equals(storage.getName()) && storageRepository.existsStorageByName(storage.getName())) return new Response<>(Statuses.UpdateStorageStatus.NAME_IN_USE,null);
         storage.setActive(true);
         return new Response<>(Statuses.UpdateStorageStatus.SUCCESS,storageRepository.save(storage));
     }

@@ -41,16 +41,8 @@ public class BatchService implements IBatchService{
     @Override
     public Response<Statuses.CreateBatchStatus, Batch> createBatch(Batch batch) {
         if(batchRepository.existsBatchByBatchCode(batch.getBatchCode())) return new Response<>(Statuses.CreateBatchStatus.CODE_IN_USE,null);
+        batch.setActive(true);
         return new Response<>(Statuses.CreateBatchStatus.SUCCESS,batchRepository.save(batch));
-    }
-
-    @Override
-    public Response<Statuses.SoftDeleteBatchStatus, Batch> softDeleteBatch(int id) {
-        Optional<Batch> batchToDelete = batchRepository.findById(id);
-        if(batchToDelete.isEmpty()) return new Response<>(Statuses.SoftDeleteBatchStatus.NOT_FOUND,null);
-        if(!batchToDelete.get().isActive()) return new Response<>(Statuses.SoftDeleteBatchStatus.ALREADY_SOFT_DELETED,null);
-        batchToDelete.get().setActive(false);
-        return new Response<>(Statuses.SoftDeleteBatchStatus.SUCCESS,batchRepository.save(batchToDelete.get()));
     }
 
     @Override
@@ -62,6 +54,14 @@ public class BatchService implements IBatchService{
         return new Response<>(Statuses.UpdateBatchStatus.SUCCESS,batchRepository.save(batch));
     }
 
+    @Override
+    public Response<Statuses.SoftDeleteBatchStatus, Batch> softDeleteBatch(int id) {
+        Optional<Batch> batchToDelete = batchRepository.findById(id);
+        if(batchToDelete.isEmpty()) return new Response<>(Statuses.SoftDeleteBatchStatus.NOT_FOUND,null);
+        if(!batchToDelete.get().isActive()) return new Response<>(Statuses.SoftDeleteBatchStatus.ALREADY_SOFT_DELETED,null);
+        batchToDelete.get().setActive(false);
+        return new Response<>(Statuses.SoftDeleteBatchStatus.SUCCESS,batchRepository.save(batchToDelete.get()));
+    }
 
     @Override
     public Response<Statuses.HardDeleteBatchStatus, Batch> hardDeleteBatch(int id) {

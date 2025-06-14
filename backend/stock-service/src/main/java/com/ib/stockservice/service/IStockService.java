@@ -18,4 +18,6 @@ public interface IStockService {
 
 
     Response<Statuses.HardDeleteStockStatus> hardDeleteStock(int id);
+
+    Response<Statuses.SoftDeleteStockStatus> softDeleteStock(int id);
 }

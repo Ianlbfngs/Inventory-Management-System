@@ -28,4 +28,6 @@ public class Stock {
     @Column(name = "pending_stock")
     Integer pendingStock;
 
+    boolean active = false;
+
 }

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/movement/type")
+@RequestMapping("/api/movements/types")
 public class MovementTypeController {
     private static final Logger logger = LoggerFactory.getLogger(MovementTypeController.class);
 

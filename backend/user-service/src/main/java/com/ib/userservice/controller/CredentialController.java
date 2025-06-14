@@ -59,7 +59,7 @@ public class CredentialController {
             return switch (result.status()){
                 case OK -> ResponseEntity.ok().body(Map.of("token",result.credential().getToken(),"username",result.credential().getUsername()));
                 case SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Credential is deleted"));
-                case NOT_FOUND -> ResponseEntity.notFound().build();
+                case NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error","Username not found"));
                 case DENIED -> ResponseEntity.badRequest().body(Map.of("error","Wrong password"));
             };
         }catch(Exception e){

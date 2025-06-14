@@ -28,11 +28,11 @@ public class StockController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<?> obtainAllStocks(){
+    public ResponseEntity<?> obtainAllStock(){
         try{
             return ResponseEntity.ok(stockService.obtainAll());
         }catch(Exception e){
-            logger.error("Error obtaining all stocks: {}",e.getMessage(),e);
+            logger.error("Error obtaining all stock: {}",e.getMessage(),e);
             return ResponseEntity.status(500).body("Something went wrong");
         }
     }
@@ -90,11 +90,27 @@ public class StockController {
                 case NEGATIVE_AVAILABLE_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Available stock must be higher than 0"));
                 case NEGATIVE_PENDING_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Pending stock must be higher than 0"));
                 case NOTHING_TO_UPDATE -> ResponseEntity.badRequest().body(Map.of("error","Only can update available or pending stock"));
-                case NEGATIVE_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Both stocks must be higher than 0"));
+                case NEGATIVE_STOCK -> ResponseEntity.badRequest().body(Map.of("error","Both pending and available stock must be higher than 0"));
                 case NOT_ENOUGH_STOCK -> null;
             };
         }catch(Exception e){
             logger.error("Error updating the stock with id {}: {}", id, e.getMessage(),e);
+            return ResponseEntity.status(500).body("Something went wrong");
+        }
+    }
+
+    @PutMapping("/delete/{id}")
+    public ResponseEntity<?> softDeleteStock(@PathVariable int id){
+        try{
+            Response<Statuses.SoftDeleteStockStatus> result = stockService.softDeleteStock(id);
+            return switch (result.status()){
+                case SUCCESS -> ResponseEntity.ok("Stock with id "+id+" successfully deleted");
+                case ALREADY_SOFT_DELETED -> ResponseEntity.badRequest().body(Map.of("error","Stock already soft deleted"));
+                case STOCK_NOT_EMPTY -> ResponseEntity.badRequest().body(Map.of("error","Available and pending stock must be 0"));
+                case NOT_FOUND -> ResponseEntity.notFound().build();
+            };
+        }catch(Exception e){
+            logger.error("Error soft deleting the stock with id{}: {}", id, e.getMessage(),e);
             return ResponseEntity.status(500).body("Something went wrong");
         }
     }
@@ -105,6 +121,7 @@ public class StockController {
             Response<Statuses.HardDeleteStockStatus> result = stockService.hardDeleteStock(id);
             return switch (result.status()){
                 case SUCCESS -> ResponseEntity.ok("Stock with id "+id+" successfully deleted");
+                case STOCK_NOT_EMPTY -> ResponseEntity.badRequest().body(Map.of("error","Available and pending stock must be 0"));
                 case NOT_FOUND -> ResponseEntity.notFound().build();
             };
         }catch(Exception e){

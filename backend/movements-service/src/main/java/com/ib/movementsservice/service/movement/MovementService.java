@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -159,6 +161,7 @@ public class MovementService implements IMovementService{
                 Optional<StockDTO> targetStock = obtainStockById(movement.getTargetStockId(),headers);
 
                 if(targetStock.isEmpty()) return new Response<>(Statuses.CreateMovementStatus.TARGET_STOCK_NOT_FOUND,null);
+                if(!originStock.get().getBatchCode().equals(targetStock.get().getBatchCode())) return new Response<>(Statuses.CreateMovementStatus.ORIGIN_AND_TARGET_DIFFERENT_BATCH,null);
 
                 targetStock.get().setPendingStock(targetStock.get().getPendingStock() + movement.getStockAmount());
 
@@ -185,35 +188,54 @@ public class MovementService implements IMovementService{
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + jwtToken);
 
+        boolean externalTarget = movement.get().getTargetStockId()==-1;
+        boolean externalOrigin= movement.get().getOriginStockId() ==-1;
+
         Optional<StockDTO> targetStock;
 
         if(receptionStatus){ //received
-             targetStock = obtainStockById(movement.get().getTargetStockId(),headers);
 
-            if(targetStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.TARGET_STOCK_NOT_FOUND,null);
+            if(!externalTarget){
+                targetStock = obtainStockById(movement.get().getTargetStockId(),headers);
 
-            targetStock.get().setAvailableStock(targetStock.get().getAvailableStock() + movement.get().getStockAmount());
-            targetStock.get().setPendingStock(targetStock.get().getPendingStock() - movement.get().getStockAmount());
+                if(targetStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.TARGET_STOCK_NOT_FOUND,null);
 
-            if(updateStockById(targetStock.get(),movement.get().getTargetStockId(),headers)) return new Response<>(Statuses.MovementReceptionStatus.ERROR_UPDATING_STOCK,null);
+                targetStock.get().setAvailableStock(targetStock.get().getAvailableStock() + movement.get().getStockAmount());
+                targetStock.get().setPendingStock(targetStock.get().getPendingStock() - movement.get().getStockAmount());
+
+                if(updateStockById(targetStock.get(),movement.get().getTargetStockId(),headers)) return new Response<>(Statuses.MovementReceptionStatus.ERROR_UPDATING_STOCK,null);
+
+            }
             movement.get().setStatus(1);
         }else{ //cancelled = reverts the movement
-            targetStock = obtainStockById(movement.get().getTargetStockId(),headers);
-            if(targetStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.TARGET_STOCK_NOT_FOUND,null);
+            if(!externalTarget){
+                targetStock = obtainStockById(movement.get().getTargetStockId(),headers);
+                if(targetStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.TARGET_STOCK_NOT_FOUND,null);
+                targetStock.get().setPendingStock(targetStock.get().getPendingStock() - movement.get().getStockAmount());
+                if(updateStockById(targetStock.get(),movement.get().getTargetStockId(),headers)) return new Response<>(Statuses.MovementReceptionStatus.ERROR_UPDATING_STOCK,null);
 
-            Optional<StockDTO> originStock = obtainStockById(movement.get().getOriginStockId(),headers);
-            if(originStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.ORIGIN_STOCK_NOT_FOUND,null);
+            }
 
-            targetStock.get().setPendingStock(targetStock.get().getPendingStock() - movement.get().getStockAmount());
-            originStock.get().setAvailableStock(originStock.get().getAvailableStock() + movement.get().getStockAmount());
+            if(!externalOrigin){
+                Optional<StockDTO> originStock = obtainStockById(movement.get().getOriginStockId(),headers);
+                if(originStock.isEmpty()) return new Response<>(Statuses.MovementReceptionStatus.ORIGIN_STOCK_NOT_FOUND,null);
+                originStock.get().setAvailableStock(originStock.get().getAvailableStock() + movement.get().getStockAmount());
+                if(updateStockById(originStock.get(),movement.get().getOriginStockId(),headers)) return new Response<>(Statuses.MovementReceptionStatus.ERROR_UPDATING_STOCK,null);
 
 
-            if(updateStockById(targetStock.get(),movement.get().getTargetStockId(),headers) || updateStockById(originStock.get(),movement.get().getOriginStockId(),headers)) return new Response<>(Statuses.MovementReceptionStatus.ERROR_UPDATING_STOCK,null);
+            }
             movement.get().setStatus(-1);
         }
 
-
+        movement.get().setReceiptDate(LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires")));
         return new Response<>(Statuses.MovementReceptionStatus.SUCCESS,movementRepository.save(movement.get()));
+    }
+
+    @Override
+    public int movementTypeSelector(int originStockId, int targetStockId) {
+        if(originStockId == -1) return 1;
+        if(targetStockId == -1) return 2;
+        return 3;
     }
 
     @Override

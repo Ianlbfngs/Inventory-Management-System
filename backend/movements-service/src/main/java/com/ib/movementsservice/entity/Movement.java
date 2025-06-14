@@ -41,7 +41,7 @@ public class Movement implements IEntity{
 
     @ManyToOne
     @JoinColumn(name ="type_id",nullable = false)
-    MovementType movementType;
+    MovementType movementType = new MovementType();
 
     @Column(name = "creator_username")
     @NotNull

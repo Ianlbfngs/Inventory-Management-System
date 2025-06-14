@@ -15,4 +15,6 @@ public interface StorageRepository extends JpaRepository<Storage,Integer> {
     Optional<Storage> findByIdAndActive(int id, boolean active);
 
     boolean existsStorageById(int id);
+
+    boolean existsStorageByName(String name);
 }
