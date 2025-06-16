@@ -1,4 +1,4 @@
-# Inventory Management - System
+# Inventory Management System
 
 Migration of the monolithic project "Sistema de gestión bancaria" to a microservices architecture using Spring Boot and React
 
