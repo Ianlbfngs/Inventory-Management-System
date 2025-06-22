@@ -58,12 +58,12 @@ Este proyecto simula un sistema de gestión de inventario con funcionalidades pa
 - Git (Opcional)
 ### Opcion 1: Clonar con Git y Ejecutar con Docker
 ```bash
-git clone https://github.com/Ianlbfngs/Sistema-Bancario.git
-cd sistema-bancario
+git clone https://github.com/Ianlbfngs/Inventory-Management-System.git
+cd Inventory-Management-System
 docker-compose up --build
 ```
 ### Opcion 2: Descargar el proyecto de GitHub y ejecutar con Docker 
-- Ir a: https://github.com/Ianlbfngs/Sistema-Bancario.git
+- Ir a: https://github.com/Ianlbfngs/Inventory-Management-System.git
 - Hacer click en "CODE" y "Download ZIP"
 - Extraer el .zip
 - Abrir un terminal en la carpeta extraida y ejecutar:
