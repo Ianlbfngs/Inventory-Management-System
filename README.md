@@ -1,80 +1,117 @@
 # Inventory Management System
 
-Migration of the monolithic project "Sistema de gestión bancaria" to a microservices architecture using Spring Boot and React
+An inventory management system developed with a microservices architecture using Spring, React, and Docker.
 
-## Table of contents
-- [Technologies and concepts used](#Technologies-and-concepts-used)
-- [Features](#Features)
-- [Installation and Usage](#Installation-and-Usage)
-- [Repository structure](#Repository-structure)
-- [General service structure](#General-service-structure)
+## Overview
 
+This project simulates an inventory management system with features for administrators such as product management, stock movement handling, user authentication, and more. Each functionality is encapsulated within independently deployable microservices, promoting scalability and maintainability.
 
-## Technologies and concepts used
-- Java 21
-- Spring Boot
-- Spring Cloud Gateway
-- React
-- MySQL
-- Git and GitHub
-- IntelliJ IDEA
-- Postman
-- Maven
-- Docker
-- REST APIs
-- Microservices
+## Table of Contents
+- [Overview](#overview)
+- [Technologies Used](#technologies-used)
+- [Key Features](#key-features)
+- [Installation and Usage](#installation-and-usage)
+- [Backend Structure](#backend-structure)
+- [Future Improvements](#future-improvements)
 
-## Features
-- Login for clients and administrators
-- Lists with multiple filters
-- Validations when performing CRUD operations
-### Administrator functions
-- CRUD operations for clients
-- CRUD operations for accounts
-### Clients functions
-- View transaction history
-- Make transfers
-- Manage multiple accounts
+## Technologies Used
+
+| Backend          | Frontend        | Infrastructure           | Others                  |
+|------------------|-----------------|--------------------------|-------------------------|
+| Java 21          | React           | Docker & Docker Compose  | RESTful APIs            |
+| Spring Boot      | Vite + SWC      | Spring Cloud Gateway     | MySQL Workbench         |
+| Spring Data JPA  | React Router    | Eureka Service Registry  | IntelliJ IDEA, VSCode   |
+| Spring Security  | Axios           | Nginx                    | Maven                   |
+| MySQL            |                 |                          | Postman                 |
+|                  |                 |                          | Git & GitHub            |
+
+## Key Features
+
+- **User Authentication**  
+  Secure login system using JWT tokens.
+
+- **Microservices Architecture**  
+  Each domain (user, storage, product, stock, movements) is encapsulated in an independent Spring Boot service.
+
+- **API Gateway with Spring Cloud Gateway**  
+  Centralized routing and filtering for all backend services.
+
+- **Service Discovery with Eureka**  
+  Dynamic service registration and discovery to facilitate communication and scalability.
+
+- **CRUD Operations**  
+  Full Create, Read, Update, and Delete functionality for all entities.
+
+- **Preloaded Databases**  
+  MySQL databases are automatically initialized using SQL scripts via Docker.
+
+- **Health Check Endpoints**  
+  Actuator-based endpoints to monitor the health of each service.
+
+- **Docker Configuration**  
+  Run the entire system with a single command: `docker-compose up --build`.
+
+- **Modern Frontend Stack**  
+  Frontend built in React using Vite + SWC for fast development and optimized builds.
 
 ## Installation and Usage
+
 ### Prerequisites
-- Docker and Docker Compose installed
-### Clone the repository
+
+- Docker and Docker Compose installed  
+- Git (Optional)
+
+### Option 1: Clone with Git and Run with Docker
 ```bash
-git clone https://github.com/Ianlbfngs/Sistema-Bancario.git
-cd sistema-bancario
+git clone https://github.com/Ianlbfngs/Inventory-Management-System.git
+cd Inventory-Management-System
+docker-compose up --build
 ```
-### Run with Docker
+### Option 2: Download the proyect from GitHub and deploy with Docker 
+- Go to: https://github.com/Ianlbfngs/Inventory-Management-System.git
+- Click on "CODE" and "Download ZIP"
+- Extract the .zip
+- Open a terminal in the extracted folder and launch:
 ```bash
 docker-compose up --build
 ```
 ### Access
-1. Open a browser and go to: http://localhost:3000
-2. Log in as administrator <br>
+#### Frontend
+1. Go from a browser to: http://localhost:3000
+2. Log in as administrator:<br>
     <u>User</u>: admin <br>
     <u>Password</u>: admin
+#### API Gateway
+http://localhost:8080
 
-## Repository structure
+#### Eureka Dashboard:
+1. Go from a browser to: http://localhost:8761
+
+
+## Backend Structure
 ```
-/api-gateway         --> Folder containing the service gateway  
-/auth-service        --> Folder containing the login credentials service  
-/register-service    --> Folder for client registration service  
-/clients-service     --> Folder for client service  
-/account-service     --> Folder for account service  
-/movements-service   --> Folder for transaction service  
-/frontend            --> Folder containing the frontend (made with React)  
-/db-scripts          --> Folder with SQL scripts to create the databases   
+/backend/eureka-server --> Eureka service
+/backend/api-gateway --> API Gateway
+/backend/user-service --> Authentication and user credentials service
+/backend/product-service --> Product management service
+/backend/storage-service --> Storage management service
+/backend/stock-service --> Stock management service
+/backend/movements-service --> Movement service
+/frontend/frontend-app --> Folder containing the frontend
+/db-scripts --> Folder with SQL scripts to create the databases 
 ```
-## General service structure
-```
-/service/src/main/java/com/ib/service/config         --> General configuration for the service  
-/service/src/main/java/com/ib/service/controller     --> REST controllers  
-/service/src/main/java/com/ib/service/dto            --> Data Transfer Objects  
-/service/src/main/java/com/ib/service/entity         --> Entity classes representing database tables  
-/service/src/main/java/com/ib/service/mapper         --> Mapping classes between entities and DTOs  
-/service/src/main/java/com/ib/service/repository     --> Interfaces for database access  
-/service/src/main/java/com/ib/service/response       --> Classes for custom API responses  
-/service/src/main/java/com/ib/service/service        --> Interfaces and classes implementing business logic  
-```
+## Future Improvements
+- **Advanced filters for lists**  
+  Add dynamic and multi-criteria filters to improve data navigation and search.
+
+- **User management improvements**  
+  Support for creating and managing multiple user roles with specific permissions.
+
+- **Swagger integration**  
+  Add interactive API documentation using Swagger UI to facilitate testing and development.
+
+- **Kafka integration**  
+  Implement asynchronous communication between microservices using Kafka for better scalability and decoupling.
+
 
  
