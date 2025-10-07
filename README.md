@@ -112,7 +112,7 @@ http://localhost:8080
 
 
 
-
+Ingles
 # Inventory Management System
 
 An inventory management system developed with a microservices architecture using Spring, React, and Docker.
